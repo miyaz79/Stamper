@@ -1,0 +1,105 @@
+.wrapper {
+  display: grid;
+  min-height: 100vh;
+  padding: var(--space-3xl) var(--space-2xl);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--space-2xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.panelColumn {
+  grid-column: span 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroColumn {
+  grid-column: 7 / -1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-lg);
+  position: relative;
+}
+
+.heroColumn::before,
+.heroColumn::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(0px);
+  z-index: -1;
+}
+
+.heroColumn::before {
+  width: 420px;
+  height: 420px;
+  right: -40px;
+  top: -80px;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(62, 123, 250, 0.22) 0%, rgba(62, 123, 250, 0) 100%);
+}
+
+.heroColumn::after {
+  width: 380px;
+  height: 380px;
+  right: 60px;
+  bottom: -120px;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(0, 196, 154, 0.18) 0%, rgba(0, 196, 154, 0) 100%);
+}
+
+.heroHeading {
+  font-size: var(--font-size-xxl);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.heroBody {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  max-width: 420px;
+  line-height: var(--line-height-relaxed);
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(62, 123, 250, 0.12);
+  color: var(--color-brand-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1200px) {
+  .wrapper {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    padding: var(--space-2xl) var(--space-lg);
+  }
+
+  .panelColumn {
+    grid-column: 1 / -1;
+    order: 2;
+  }
+
+  .heroColumn {
+    grid-column: 1 / -1;
+    order: 1;
+    align-items: center;
+    text-align: center;
+  }
+
+  .heroColumn::before,
+  .heroColumn::after {
+    display: none;
+  }
+
+  .heroBody {
+    max-width: none;
+  }
+}
