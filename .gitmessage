@@ -1,0 +1,34 @@
+# コミットメッセージ テンプレート（Conventional Commits ベース）
+#
+# 形式:
+#   type(scope?): 短い要約
+#
+# type（変更しないでください）:
+#   feat, fix, docs, style, refactor, perf, test, chore, build, ci, revert
+#
+# short summary は命令形で簡潔に（目安: 50文字以内）
+# body（必要な場合）は空行で区切って詳細を記載（目的、行ったこと、影響）
+# footer（必要な場合）に Issue 番号や BREAKING CHANGE を記載
+#
+# --- タイトル（必須） ---
+type(scope): 短い要約
+#
+# --- 本文（任意） ---
+# - なぜこの変更が必要か
+# - 主要な変更点（箇条書きで）
+# - 互換性や注意点（必要なら）
+#
+# --- フッター（任意） ---
+# Closes: #123
+# BREAKING CHANGE: 変更内容の要点
+#
+# 例:
+# feat(auth): OAuth ログインを追加
+#
+# fix(api): ユーザー未発見時に 404 を返すよう修正
+#
+# chore(gitignore): 不要なテンプレート項目を削除
+#
+# 注意:
+# - scope は省略可（例: feat: add login）
+# - さらに厳密にしたい場合はプロジェクト内のルールに合わせて type や例を追加してください
