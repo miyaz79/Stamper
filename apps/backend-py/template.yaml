@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Stamper backend (Python worker) - Post PoC placeholder
+
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+  OcrWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/ocr_consumer.lambda_handler
+      CodeUri: src
+      Events:
+        # Placeholder, actual SQS wiring post-PoC
+        Timer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(10 minutes)
+            Name: !Sub ocr-worker-timer-${StageName}
+            Enabled: false

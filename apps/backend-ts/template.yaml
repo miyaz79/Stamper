@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Stamper backend (TypeScript) - PoC (attendance only)
+
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+  EnableWAF:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    Description: Enable WAF IP allowlist on API Gateway
+  AllowedIpCidrs:
+    Type: List<String>
+    Default: ["203.0.113.0/24", "198.51.100.0/24"]
+    Description: Placeholder CIDR blocks for corporate IPs (Q012 TBD)
+  CognitoUserPoolArn:
+    Type: String
+    Default: ''
+    Description: Optional Cognito User Pool ARN. If empty, auth is disabled.
+
+Conditions:
+  UseWAF: !Equals [!Ref EnableWAF, 'true']
+  UseAuth: !Not [!Equals [!Ref CognitoUserPoolArn, '']]
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 10
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        NODE_OPTIONS: --enable-source-maps
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref StageName
+      TracingEnabled: true
+      EndpointConfiguration: REGIONAL
+      Auth:
+        DefaultAuthorizer: !If [UseAuth, CognitoAuthorizer, 'NONE']
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Ref CognitoUserPoolArn
+      Cors:
+        AllowMethods: "GET,POST,PUT,OPTIONS"
+        AllowHeaders: "Content-Type,Authorization"
+        AllowOrigin: "*"
+
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: src/handlers/health
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /health
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/health.ts
+
+  AttendanceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: src/handlers/attendance
+      Events:
+        GetEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /attendance
+            Method: GET
+        PutEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /attendance
+            Method: PUT
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/attendance.ts
+
+  # WAFv2 resources (optional, IP allowlist)
+  ApiWafAcl:
+    Type: AWS::WAFv2::WebACL
+    Condition: UseWAF
+    Properties:
+      Name: !Sub stamper-web-acl-${StageName}
+      Scope: REGIONAL
+      DefaultAction:
+        Block: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub stamper-web-acl-${StageName}
+        SampledRequestsEnabled: true
+      Rules:
+        - Name: AllowCorporateIPs
+          Priority: 1
+          Action:
+            Allow: {}
+          Statement:
+            IPSetReferenceStatement:
+              ARN: !GetAtt ApiWafIpSet.Arn
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub allow-corp-ips-${StageName}
+            SampledRequestsEnabled: true
+
+  ApiWafIpSet:
+    Type: AWS::WAFv2::IPSet
+    Condition: UseWAF
+    Properties:
+      Name: !Sub stamper-ipset-${StageName}
+      Scope: REGIONAL
+      Description: Placeholder corporate IPs (replace in production)
+      IPAddressVersion: IPV4
+      Addresses: !Ref AllowedIpCidrs
+
+  ApiWafAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Condition: UseWAF
+    Properties:
+      ResourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/restapis/${Api}/stages/${StageName}
+      WebACLArn: !GetAtt ApiWafAcl.Arn
+
+Outputs:
+  ApiUrl:
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}
+    Description: API base URL
