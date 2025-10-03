@@ -1,0 +1,44 @@
+{
+  "name": "Stamper Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "amazonwebservices.amazon-q-vscode",
+        "amazonwebservices.aws-toolkit-vscode",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "eslint.useFlatConfig": false
+      }
+    }
+  },
+  // Temporarily use root for debugging permission/post-create issues. Revert to "node" after testing.
+  "remoteUser": "root",
+  "containerEnv": {
+    "TZ": "Asia/Tokyo",
+    "TURBO_TELEMETRY_DISABLED": "1",
+    "NPM_CONFIG_FUND": "false"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.aws,target=/home/node/.aws,type=bind,consistency=cached"
+  ],
+  "forwardPorts": [3000, 3001, 8000, 9000],
+  // Disabled during debug to avoid failing the build due to npm / network / permission problems.
+  // Re-enable (or run manually inside container) after verifying container starts.
+  // "postCreateCommand": "corepack enable && npm ci",
+  "postStartCommand": "git config --global --add safe.directory /workspaces/Stamper"
+}

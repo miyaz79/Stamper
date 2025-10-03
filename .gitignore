@@ -42,3 +42,5 @@ temp/
 .DS_Store
 thumbs.db
 coverage/
+
+.turbo/

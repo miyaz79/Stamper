@@ -156,3 +156,21 @@ SAMの `template.yaml` に `EnableWAF` と `AllowedIpCidrs` パラメータを�
 
 デザインシステムや画面実装のベストプラクティスは `apps/frontend/README.md` に集約しています。UI を更新する際はそちらを参照し、トークンやコンポーネントの追加ルールを遵守してください。
 
+
+## 7. Dev Container での開発
+
+VS Code の Dev Containers を利用して、統一された開発環境を再現できます。Docker Desktop と WSL2 の併用を推奨します。
+
+1. VS Code で本リポジトリを開く（WSL: Ubuntu 上を推奨）
+2. コマンドパレットで「Dev Containers: Reopen in Container」を実行
+3. コンテナ起動後、自動で `npm ci` が走ります
+
+コンテナ内で以下のコマンドを利用できます。
+
+- 全体の開発: `npm run dev`
+- フロントのみ: `npx turbo run dev --filter=@stamper/frontend`
+- SAM Local (TS): `cd apps/backend-ts && sam build && sam local start-api --port 8000`
+- SAM Local (Py): `cd apps/backend-py && sam build && sam local start-api --port 9000`
+
+AWS 認証情報は、ホストの `~/.aws` を `/home/node/.aws` にマウントして利用します。詳細は `.devcontainer/README.md` を参照してください。
+
