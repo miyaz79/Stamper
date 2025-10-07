@@ -112,13 +112,35 @@ const summary: AttendanceSummary = {
 
 デプロイは、各アプリケーションディレクトリに移動して行います。
 
-**フロントエンド (Vercelなど)**
+**フロントエンド (AWS Amplify Hosting)**
 
-```bash
-cd apps/frontend
-# Vercel CLIなどを使ってデプロイ
-vercel deploy
+1. Amplify コンソールで「新しいアプリ」→「Git からデプロイ」
+2. リポジトリ/ブランチを接続し、モノレポ設定でアプリルートを `apps/frontend` に指定
+3. 環境変数（例：`NEXT_PUBLIC_API_BASE_URL` など）を設定
+4. ビルド設定（amplify.yml）を以下の例で保存（必要に応じて調整）
+
+```yaml
+version: 1
+applications:
+  - appRoot: apps/frontend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
 ```
+
+> Preview/Production はブランチ連携で自動生成できます。SSR/ISR は Amplify(CloudFront) がサポートします。
 
 **バックエンド (AWS SAM)**
 
@@ -135,7 +157,8 @@ sam build && sam deploy
 CI/CDパイプラインを構築することで、これらのデプロイプロセスを自動化することを推奨します。
 
 ### WAFの社内IPレンジ（プレースホルダー）
-SAMの `template.yaml` に `EnableWAF` と `AllowedIpCidrs` パラメータを用意しています。IPが確定するまで `EnableWAF=false` で進め、確定後に `AllowedIpCidrs` を置き換え、`EnableWAF=true` で再デプロイしてください。
+SAMの `template.yaml` に `EnableWAF` と `AllowedIpCidrs` パラメータを用意しています。IPが確定するまで `EnableWAF=false` で進め、確定後に `AllowedIpCidrs` を置き換え、`EnableWAF=true` で再デプロイしてください。  
+Amplify/CloudFront 側のWAFは CloudFront ディストリビューションにWebACLを関連付けて設定してください（Amplify コンソールまたはCloudFrontで管理、IaCは別管理）。
 
 -----
 

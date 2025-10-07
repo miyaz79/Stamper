@@ -10,11 +10,11 @@
 
 ## 2. アーキテクチャ全体像
 * アーキテクチャスタイル：フロントエンドはNext.js、バックエンドはAWSサーバレス（API Gateway + Lambda + RDS + S3 + SQS + Textract）。認証はCognito。監視はCloudWatch。IaCはAWS SAM（PoC段階）。
-* ホスティング：フロントはVercelを優先採用（決定）。Preview/Production運用が容易。代替としてAmplifyも選択肢。
+* ホスティング：フロントはAWS Amplify Hosting（CloudFront配下）を採用。Preview/Production運用が容易。必要に応じてブランチごとに環境を自動生成。
 
 ### フェーズ定義（PoC前提）
 * PoCスコープ：勤怠（F-002〜F-008）のみ。経費/OCR（F-009〜F-012）、承認ワークフロー（F-011, F-012）はポストPoC。
-* セキュリティ：PoCでは社内IP制限を実施（API層WAFの許可リスト）。FEの完全IP制限はVercelの都合上難度が高いため、PoCではAPI側でアクセスを制御（UI単体の閲覧は可能だが機能は行使不可）。将来、Amplify/CloudFront移行やVercel Enterprise機能での強化を検討。
+* セキュリティ：CloudFront + WAF によりフロント(Amplify)にもIP許可リストを適用。API層もWAFで社内IP制限を実施し二重で防御。Cognito Hosted UI を併用。
 * 認証：Cognito Hosted UI（SSOはポストPoC）。
 * 環境：単一AWSアカウントで dev/stg/prod を分離（将来はアカウント分離）。
 * 規模：PoCユーザー<=10名（将来50名想定）。RDSは最小クラスで開始。
@@ -25,8 +25,8 @@ graph TD
                 User("ユーザー<br>(Webブラウザ)")
         end
 
-        subgraph "フロントエンド (Vercel)"
-                Frontend("Next.js アプリケーション")
+        subgraph "フロントエンド (Amplify Hosting)"
+                Frontend("Amplify Hosting (Next.js/CloudFront)")
         end
 
         subgraph "AWS"
@@ -266,8 +266,8 @@ sequenceDiagram
 - S3：専用バケット（receipt-<env>）、バケットポリシー、ブロックPublicAccess、有効なライフサイクル（原本/サムネ/アーカイブ）。
 - Secrets：Secrets Manager（DB資格情報）+ 自動ローテーション、Parameter Store（アプリ設定）。
 - 監視：CloudWatch Logs/Metric Filters、X-Ray、Alarms、Dashboards。
-- ドメイン：Route53（api.example.co.jp, app.example.co.jp）。Vercel側は独自ドメインCNAMEで運用。
- - WAF IP制限：API GatewayにIPセットで社内グローバルIPのみ許可（PoC要件）。Cognito Hosted UI/FEはCognito認証＋API層制御で補完。
+- ドメイン：Route53（api.example.co.jp, app.example.co.jp）。Amplify Hosting の CloudFront ディストリビューションに独自ドメイン/CNAMEとACM証明書を適用。
+ - WAF IP制限：API GatewayにIPセットで社内グローバルIPのみ許可。加えてCloudFront（Amplify配下）にもWebACLを関連付け、フロント配信にも同様の制限を適用。
 
 ### デプロイメント図（簡略）
 ```mermaid
@@ -288,7 +288,7 @@ graph LR
         L2 -->|Get/Put| S3[(S3 Bucket)]
         WAF{{WAF}} --> APIGW
         Cognito{{Cognito}} --> APIGW
-        Frontend[[Vercel Next.js]] -->|HTTPS| APIGW
+        Frontend[[Amplify Hosting (CloudFront)]] -->|HTTPS| APIGW
 ```
 
 ## 7. 非機能要件対応
@@ -305,7 +305,7 @@ graph LR
 |---|---|---|---|---|
 | DB | Amazon RDS for PostgreSQL + RDS Proxy | Aurora Serverless v2, DynamoDB | リレーショナル/集計/レポート適性、既存スキル | 接続数/スケール制約→Proxy必須、コスト|
 | API | API Gateway + Lambda (TypeScript, SAM) | App Runner, ECS Fargate, SST/CDK | 運用負荷小・細粒度スケール・PoC速度 | コールドスタート、DB接続最適化必要|
-| UIフレームワーク | Next.js 14 (Vercel) | Amplify Hosting, SvelteKit, Nuxt | 生産性・Preview・SSR/SSG柔軟性 | ベンダーロックイン、社内標準との整合|
+| UIフレームワーク | Next.js 14 (Amplify Hosting) | Vercel, SvelteKit, Nuxt | 生産性・Preview・SSR/SSG柔軟性・AWS統合 | 設定の複雑さ、CloudFront/WAF管理|
 | 非同期/ワーカー | SQS + Lambda (Python) + Textract | Step Functions, EventBridge Pipes | シンプル/低コストに開始できる | 複雑化時はオーケストレーション再設計が必要|
 | 認証 | Amazon Cognito (User Pool + Hosted UI) | Auth0, Azure AD B2C, Google SSO | AWS統合とコスト、PoCに十分 | エンタープライズSSO拡張時のUX差異|
 | IaC | AWS SAM | CDK, Serverless Framework, Terraform | 学習コスト低・Lambda中心に最適 | 複合リソース/多言語化でテンプレ拡散|
@@ -323,7 +323,7 @@ graph LR
 2. RDS選択：集計/レポート要件（F-002, F-008, F-014）に強い。DynamoDBは集計の複雑性が高く今回は不採用。
 3. 非同期基盤：まずSQSで十分。将来的に分岐/人手判断が増えたらStep Functions検討。
 4. OCR：TextractはAWS統合と領収書の精度/コストバランスが良い。他社APIはガバナンス面で見送り。
-5. FEホスティング：Vercelを主に採用（Preview/Edge）。Amplifyは権限統合の利点あり代替候補として残置。
+5. FEホスティング：Amplify Hosting を採用（AWS統合・セキュリティ/権限面の一貫性、CloudFrontベースのSSR/ISR対応）。
 6. ORM：Lambda親和性からKysely。PrismaはData Proxy必須化・ネットワーク制約が増えるためPoCでは回避。
 7. セキュリティ：WAF + Cognito JWT + 最小権限IAM + VPCエンドポイント優先でNAT排除しコスト/漏洩面積を削減。
 8. Observability：まずCloudWatch/X-Ray。規模拡大時はDatadog等に移行可能な抽象化を意識。
