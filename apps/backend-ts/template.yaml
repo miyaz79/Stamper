@@ -100,6 +100,39 @@ Resources:
         EntryPoints:
           - src/handlers/attendance.ts
 
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: src/handlers/auth
+      Events:
+        LoginEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /auth/login
+            Method: POST
+        RefreshEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /auth/refresh
+            Method: POST
+        SessionEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /auth/session
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/auth.ts
+
   # WAFv2 resources (optional, IP allowlist)
   ApiWafAcl:
     Type: AWS::WAFv2::WebACL

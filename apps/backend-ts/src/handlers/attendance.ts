@@ -35,8 +35,9 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       return ok({ id: cryptoRandomId(), calcResults: dummyCalc() });
     }
     return methodNotAllowed();
-  } catch (e: any) {
-    return error(e?.message || "internal error");
+  } catch (unknownError) {
+    const message = unknownError instanceof Error ? unknownError.message : "internal error";
+    return error(message);
   }
 }
 
