@@ -70,6 +70,14 @@
   font-size: var(--font-size-sm);
 }
 
+.successBanner {
+  border-radius: var(--radius-md);
+  padding: var(--space-2xs) var(--space-sm);
+  background: rgba(0, 196, 154, 0.12);
+  color: var(--color-brand-success, #1c8c6d);
+  font-size: var(--font-size-sm);
+}
+
 @media (max-width: 600px) {
   .linksRow {
     flex-direction: column;

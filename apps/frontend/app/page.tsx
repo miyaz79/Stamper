@@ -2,21 +2,56 @@
 
 import React from "react";
 import { LoginPanel } from "../path_to_your_design_system/components";
+import { signInWithCognito } from "../lib/cognitoClient";
 import styles from "./page.module.css";
 
 export default function Page() {
-  const handleLogin = React.useCallback((values: {
+  const [errorMessage, setErrorMessage] = React.useState<string | undefined>();
+  const [successMessage, setSuccessMessage] = React.useState<string | undefined>();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleLogin = React.useCallback(async (values: {
     email: string;
     password: string;
     rememberMe: boolean;
   }) => {
-    console.info("Login submitted", values);
+    setIsSubmitting(true);
+    setErrorMessage(undefined);
+    setSuccessMessage(undefined);
+
+    try {
+      const result = await signInWithCognito(values);
+      console.info("Cognito sign-in succeeded", {
+        idToken: result.idToken,
+        accessToken: result.accessToken
+      });
+
+      setSuccessMessage("ログインに成功しました。");
+
+      const redirectUri = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI;
+      if (redirectUri && typeof window !== "undefined" && redirectUri.trim().length > 0) {
+        const normalizedRedirect = redirectUri.trim();
+        if (normalizedRedirect !== window.location.href) {
+          window.location.assign(normalizedRedirect);
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ログインに失敗しました。";
+      setErrorMessage(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }, []);
 
   return (
     <main className={styles.wrapper}>
       <section className={styles.panelColumn}>
-        <LoginPanel onSubmit={handleLogin} />
+        <LoginPanel
+          onSubmit={handleLogin}
+          errorMessage={errorMessage}
+          successMessage={successMessage}
+          isSubmitting={isSubmitting}
+        />
       </section>
       <section className={styles.heroColumn} aria-label="Stamperの特長">
         <span className={styles.heroBadge}>Time &amp; Expense Platform</span>

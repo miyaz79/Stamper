@@ -8,24 +8,33 @@ import { TextLink } from "../TextLink/TextLink";
 import styles from "./LoginPanel.module.css";
 
 type LoginPanelProps = {
-  onSubmit?: (values: { email: string; password: string; rememberMe: boolean }) => void;
+  onSubmit?: (values: { email: string; password: string; rememberMe: boolean }) => void | Promise<void>;
+  errorMessage?: string;
+  successMessage?: string;
+  isSubmitting?: boolean;
 };
 
-export function LoginPanel({ onSubmit }: LoginPanelProps) {
+export function LoginPanel({ onSubmit, errorMessage, successMessage, isSubmitting = false }: LoginPanelProps) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [rememberMe, setRememberMe] = React.useState(true);
   const [error, setError] = React.useState<string | undefined>();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!email || !password) {
       setError("メールアドレスとパスワードを入力してください。");
       return;
     }
     setError(undefined);
-    onSubmit?.({ email, password, rememberMe });
+    try {
+      await onSubmit?.({ email, password, rememberMe });
+    } catch (submitError) {
+      console.error("Login submission failed", submitError);
+    }
   };
+
+  const combinedError = error ?? errorMessage;
 
   return (
   <Card spacing="section" aria-labelledby="login-title">
@@ -53,6 +62,7 @@ export function LoginPanel({ onSubmit }: LoginPanelProps) {
             onChange={(event) => setEmail(event.target.value)}
             required
             errorText={!email && error ? "入力してください" : undefined}
+            disabled={isSubmitting}
           />
           <TextField
             id="password"
@@ -64,14 +74,25 @@ export function LoginPanel({ onSubmit }: LoginPanelProps) {
             onChange={(event) => setPassword(event.target.value)}
             required
             errorText={!password && error ? "入力してください" : undefined}
+            disabled={isSubmitting}
           />
           <div className={styles.actions}>
-            <Button type="submit" fluid aria-label="Stamperにログイン">
+            <Button
+              type="submit"
+              fluid
+              aria-label="Stamperにログイン"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
               ログイン
             </Button>
-            {error ? (
+            {combinedError ? (
               <div className={styles.errorBanner} role="alert" aria-live="assertive">
-                {error}
+                {combinedError}
+              </div>
+            ) : successMessage ? (
+              <div className={styles.successBanner} role="status" aria-live="polite">
+                {successMessage}
               </div>
             ) : null}
             <div className={styles.linksRow}>
@@ -81,6 +102,7 @@ export function LoginPanel({ onSubmit }: LoginPanelProps) {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}
+                  disabled={isSubmitting}
                 />
                 次回から自動的にログイン
               </label>
