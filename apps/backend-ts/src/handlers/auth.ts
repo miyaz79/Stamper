@@ -8,7 +8,7 @@ import {
 import { z } from "zod";
 import { getEnv } from "../lib/env";
 import { jsonResponse } from "../lib/http";
-import { verifyAccessToken } from "../lib/jwt";
+import * as Jwt from "../lib/jwt";
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -101,7 +101,7 @@ async function handleSession(event: APIGatewayProxyEventV2): Promise<APIGatewayP
 
   const token = authorization.replace(/^Bearer\s+/i, "");
   try {
-    const payload = await verifyAccessToken(token, env);
+    const payload = await Jwt.verifyAccessToken(token, env);
     return jsonResponse(200, {
       sub: payload.sub,
       email: payload.email,

@@ -6,14 +6,16 @@
     "build": "sam build",
     "deploy": "sam deploy --guided",
     "lint": "eslint .",
-    "dev": "echo 'use sam local start-api if needed'"
+    "dev": "echo 'use sam local start-api if needed'",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@stamper/eslint-config": "*",
     "@types/aws-lambda": "^8.10.129",
     "@types/node": "^20.11.30",
     "esbuild": "^0.21.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
     "@stamper/types": "*",
