@@ -1,0 +1,6 @@
+# Coding Conventions
+- **TypeScript**: Strict mode via shared tsconfig; prefer Composition API-style React (functional components). Validate Lambda inputs with Zod and return structured JSON with explicit headers. Honor shared types from `@stamper/types` for contracts.
+- **React/Next.js**: App Router with client components where needed. Import tokens from `path_to_your_design_system` and style via CSS Modules only; avoid inline styles and raw color/spacing literals—rely on design tokens. Keep accessibility in mind (ARIA labels, focus outlines from tokens).
+- **Python Lambdas**: Target Python 3.12, keep handlers minimal and ready for AWS SAM. Follow AWS best practices (stateless, event-driven) even for placeholders.
+- **Linting**: Repository-wide ESLint config extends `eslint:recommended` + `@typescript-eslint`. Treat unused vars as warnings unless prefixed with `_`.
+- **Docs & Components**: New design-system components require accompanying README covering props, dependencies, a11y, and token usage.
