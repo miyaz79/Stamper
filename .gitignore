@@ -38,6 +38,8 @@ __pycache__/
 
 # Temp / prototypes
 temp/
+playwright-report/
+test-results/
 
 # OS / CI artifacts
 .DS_Store

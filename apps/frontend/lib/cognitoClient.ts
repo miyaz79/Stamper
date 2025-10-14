@@ -29,12 +29,19 @@ export type NewPasswordRequiredChallenge = {
 
 export type SignInResponse = SignInSuccess | NewPasswordRequiredChallenge;
 
-function requiredEnv(name: keyof NodeJS.ProcessEnv): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is not defined in the environment.`);
+const envConfig = {
+  userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID ?? "",
+  clientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID ?? ""
+};
+
+function getEnvConfig() {
+  if (!envConfig.userPoolId) {
+    throw new Error("NEXT_PUBLIC_COGNITO_USER_POOL_ID is not defined in the environment.");
   }
-  return value;
+  if (!envConfig.clientId) {
+    throw new Error("NEXT_PUBLIC_COGNITO_CLIENT_ID is not defined in the environment.");
+  }
+  return envConfig;
 }
 
 function assertBrowser() {
@@ -53,8 +60,7 @@ function createStorage(target: Storage): IStorage {
 }
 
 function buildUserPool(storage: IStorage) {
-  const userPoolId = requiredEnv("NEXT_PUBLIC_COGNITO_USER_POOL_ID");
-  const clientId = requiredEnv("NEXT_PUBLIC_COGNITO_CLIENT_ID");
+  const { userPoolId, clientId } = getEnvConfig();
 
   return new CognitoUserPool({
     UserPoolId: userPoolId,

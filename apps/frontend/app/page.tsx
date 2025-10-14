@@ -34,9 +34,10 @@ export default function Page() {
 
     const redirectUri = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI;
     if (redirectUri && typeof window !== "undefined" && redirectUri.trim().length > 0) {
-      const normalizedRedirect = redirectUri.trim();
-      if (normalizedRedirect !== window.location.href) {
-        window.location.assign(normalizedRedirect);
+        const targetUrl = new URL(redirectUri.trim(), window.location.href);
+        const currentUrl = new URL(window.location.href);
+        if (targetUrl.toString() !== currentUrl.toString()) {
+          window.location.assign(targetUrl.toString());
       }
     }
   }, []);
