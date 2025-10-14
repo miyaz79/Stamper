@@ -12,12 +12,22 @@ export type SignInCredentials = {
   rememberMe: boolean;
 };
 
-export type SignInResult = {
+export type SignInSuccess = {
+  status: "SUCCESS";
   session: CognitoUserSession;
   idToken: string;
   accessToken: string;
   refreshToken?: string;
 };
+
+export type NewPasswordRequiredChallenge = {
+  status: "NEW_PASSWORD_REQUIRED";
+  cognitoUser: CognitoUser;
+  requiredAttributes?: string[];
+  userAttributes?: Record<string, string>;
+};
+
+export type SignInResponse = SignInSuccess | NewPasswordRequiredChallenge;
 
 function requiredEnv(name: keyof NodeJS.ProcessEnv): string {
   const value = process.env[name];
@@ -77,11 +87,43 @@ function normalizeCognitoError(error: unknown): Error {
   return new Error("ログインに失敗しました。時間をおいて再度お試しください。");
 }
 
+function mapSessionToSuccess(session: CognitoUserSession, cognitoUser: CognitoUser): SignInSuccess {
+  const idToken = session.getIdToken().getJwtToken();
+  const accessToken = session.getAccessToken().getJwtToken();
+  const refreshToken = session.getRefreshToken()?.getToken();
+
+  cognitoUser.setSignInUserSession(session);
+
+  return {
+    status: "SUCCESS",
+    session,
+    idToken,
+    accessToken,
+    refreshToken: refreshToken ?? undefined
+  };
+}
+
+function sanitizeUserAttributes(attributes: Record<string, unknown> | undefined): Record<string, string> | undefined {
+  if (!attributes) return undefined;
+
+  const clone: Record<string, string> = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    if (typeof value === "string") {
+      clone[key] = value;
+    }
+  }
+
+  delete clone.email_verified;
+  delete clone.phone_number_verified;
+
+  return Object.keys(clone).length > 0 ? clone : undefined;
+}
+
 export async function signInWithCognito({
   email,
   password,
   rememberMe
-}: SignInCredentials): Promise<SignInResult> {
+}: SignInCredentials): Promise<SignInResponse> {
   assertBrowser();
 
   const storageTarget = rememberMe ? window.localStorage : window.sessionStorage;
@@ -97,24 +139,46 @@ export async function signInWithCognito({
     Pool: userPool
   });
 
-  return new Promise<SignInResult>((resolve, reject) => {
+  return new Promise<SignInResponse>((resolve, reject) => {
     cognitoUser.authenticateUser(authenticationDetails, {
       onSuccess: (session: CognitoUserSession) => {
-        const idToken = session.getIdToken().getJwtToken();
-        const accessToken = session.getAccessToken().getJwtToken();
-        const refreshToken = session.getRefreshToken()?.getToken();
-
-        // Ensure tokens are stored in the chosen storage backend.
-        cognitoUser.setSignInUserSession(session);
-        resolve({ session, idToken, accessToken, refreshToken: refreshToken ?? undefined });
+        resolve(mapSessionToSuccess(session, cognitoUser));
       },
       onFailure: (err: unknown) => {
         reject(normalizeCognitoError(err));
       },
-      newPasswordRequired: () => {
-        reject(new Error("初回ログインのためパスワードリセットが必要です。別途管理者にご連絡ください。"));
+      newPasswordRequired: (userAttributes, requiredAttributes) => {
+        resolve({
+          status: "NEW_PASSWORD_REQUIRED",
+          cognitoUser,
+          requiredAttributes: requiredAttributes ?? undefined,
+          userAttributes: sanitizeUserAttributes(userAttributes as Record<string, unknown> | undefined)
+        });
       }
     });
+  });
+}
+
+export async function completeNewPasswordChallenge(
+  cognitoUser: CognitoUser,
+  newPassword: string,
+  attributes: Record<string, string> | undefined = undefined
+): Promise<SignInSuccess> {
+  assertBrowser();
+
+  return new Promise<SignInSuccess>((resolve, reject) => {
+    cognitoUser.completeNewPasswordChallenge(
+      newPassword,
+      attributes ?? {},
+      {
+        onSuccess: (session) => {
+          resolve(mapSessionToSuccess(session, cognitoUser));
+        },
+        onFailure: (err) => {
+          reject(normalizeCognitoError(err));
+        }
+      }
+    );
   });
 }
 
