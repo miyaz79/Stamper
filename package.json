@@ -15,5 +15,9 @@
   },
   "devDependencies": {
     "turbo": "^2.1.1"
+  },
+  "dependencies": {
+    "@aws-amplify/cli": "^14.0.2",
+    "aws-amplify": "^6.15.7"
   }
 }
