@@ -1,208 +1,134 @@
 "use client";
 
 import React from "react";
-import { Button, Card, LoginPanel, TextField } from "../path_to_your_design_system/components";
-import {
-  completeNewPasswordChallenge,
-  signInWithCognito,
-  type NewPasswordRequiredChallenge,
-  type SignInSuccess
-} from "../lib/cognitoClient";
+import { useRouter } from "next/navigation";
+import { Button, Card } from "../path_to_your_design_system/components";
 import styles from "./page.module.css";
 
+const weeklySummary = [
+  { range: "9/29 ～ 10/5", hours: "37.50 h" },
+  { range: "10/6 ～ 10/12", hours: "40.00 h" }
+];
+
+const navItems = [
+  { id: "dashboard", label: "ダッシュボード", href: "/" },
+  { id: "time-entry", label: "時間記録", href: "/time-entry" },
+  { id: "timesheet", label: "勤務表", href: "/timesheet" },
+  { id: "bulk-edit", label: "一括編集", href: "/bulk-edit" }
+];
+
 export default function Page() {
-  const [errorMessage, setErrorMessage] = React.useState<string | undefined>();
-  const [successMessage, setSuccessMessage] = React.useState<string | undefined>();
-  const [challengeNotice, setChallengeNotice] = React.useState<string | undefined>();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [challenge, setChallenge] = React.useState<NewPasswordRequiredChallenge | undefined>();
-  const [newPassword, setNewPassword] = React.useState("");
-  const [confirmPassword, setConfirmPassword] = React.useState("");
-  const [newPasswordError, setNewPasswordError] = React.useState<string | undefined>();
-  const [confirmPasswordError, setConfirmPasswordError] = React.useState<string | undefined>();
+  const router = useRouter();
+  const [activeNav, setActiveNav] = React.useState("dashboard");
 
-  const handleAuthSuccess = React.useCallback((result: SignInSuccess) => {
-    console.info("Cognito sign-in succeeded", {
-      idToken: result.idToken,
-      accessToken: result.accessToken
-    });
-
-    setChallenge(undefined);
-    setChallengeNotice(undefined);
-    setErrorMessage(undefined);
-    setSuccessMessage("ログインに成功しました。");
-
-    const redirectUri = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI;
-    if (redirectUri && typeof window !== "undefined" && redirectUri.trim().length > 0) {
-        const targetUrl = new URL(redirectUri.trim(), window.location.href);
-        const currentUrl = new URL(window.location.href);
-        if (targetUrl.toString() !== currentUrl.toString()) {
-          window.location.assign(targetUrl.toString());
-      }
-    }
-  }, []);
-
-  const handleLogin = React.useCallback(async (values: {
-    email: string;
-    password: string;
-    rememberMe: boolean;
-  }) => {
-    setIsSubmitting(true);
-    setErrorMessage(undefined);
-    setSuccessMessage(undefined);
-     setChallengeNotice(undefined);
-
-    try {
-      const response = await signInWithCognito(values);
-
-      if (response.status === "NEW_PASSWORD_REQUIRED") {
-        setChallenge(response);
-        setChallengeNotice("初回ログインのため、新しいパスワードを設定してください。");
-        setNewPassword("");
-        setConfirmPassword("");
-        setNewPasswordError(undefined);
-        setConfirmPasswordError(undefined);
-        return;
-      }
-
-      handleAuthSuccess(response);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "ログインに失敗しました。";
-      setErrorMessage(message);
-      setChallenge(undefined);
-      setChallengeNotice(undefined);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [handleAuthSuccess]);
-
-  const handleCompleteNewPassword = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!challenge) {
-        setErrorMessage("セッションが無効です。お手数ですが再度ログインしてください。");
-        setChallengeNotice(undefined);
-        return;
-      }
-
-      setErrorMessage(undefined);
-      setSuccessMessage(undefined);
-      setNewPasswordError(undefined);
-      setConfirmPasswordError(undefined);
-
-      if (newPassword.length < 8) {
-        setNewPasswordError("8文字以上のパスワードを入力してください。");
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        setConfirmPasswordError("確認用パスワードが一致しません。");
-        return;
-      }
-
-      setIsSubmitting(true);
-
-      try {
-        const result = await completeNewPasswordChallenge(
-          challenge.cognitoUser,
-          newPassword,
-          challenge.userAttributes
-        );
-        setNewPassword("");
-        setConfirmPassword("");
-        handleAuthSuccess(result);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "パスワードの更新に失敗しました。";
-        setErrorMessage(message);
-      } finally {
-        setIsSubmitting(false);
-      }
+  const handleNavClick = React.useCallback(
+    (item: typeof navItems[number]) => {
+      setActiveNav(item.id);
+      router.push(item.href);
     },
-    [challenge, confirmPassword, handleAuthSuccess, newPassword]
+    [router]
   );
 
-  const showLoginPanel = !challenge;
+  const handleAutoExpense = React.useCallback(() => {
+    router.push("/expenses/auto");
+  }, [router]);
 
   return (
-    <main className={styles.wrapper}>
-      <section className={styles.panelColumn}>
-        {showLoginPanel ? (
-          <LoginPanel
-            onSubmit={handleLogin}
-            errorMessage={errorMessage}
-            successMessage={successMessage}
-            isSubmitting={isSubmitting}
-          />
-        ) : (
-          <Card spacing="section" aria-labelledby="new-password-title">
-            <div className={styles.newPasswordContainer}>
-              <div>
-                <h1 id="new-password-title" className={styles.newPasswordHeading}>
-                  初回パスワード設定
-                </h1>
-                <p className={styles.newPasswordDescription}>
-                  初回ログインのため、新しいパスワードを入力してください。
-                </p>
-                {challengeNotice ? (
-                  <div className={styles.feedbackNotice} role="status" aria-live="polite">
-                    {challengeNotice}
-                  </div>
-                ) : null}
-                {errorMessage ? (
-                  <div className={styles.feedbackError} role="alert" aria-live="assertive">
-                    {errorMessage}
-                  </div>
-                ) : null}
-              </div>
-              <form className={styles.newPasswordForm} onSubmit={handleCompleteNewPassword} noValidate>
-                <TextField
-                  id="newPassword"
-                  label="新しいパスワード"
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(event) => {
-                    setNewPassword(event.target.value);
-                    if (newPasswordError) setNewPasswordError(undefined);
-                  }}
-                  required
-                  errorText={newPasswordError}
-                  disabled={isSubmitting}
-                />
-                <TextField
-                  id="confirmNewPassword"
-                  label="新しいパスワード（確認）"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(event) => {
-                    setConfirmPassword(event.target.value);
-                    if (confirmPasswordError) setConfirmPasswordError(undefined);
-                  }}
-                  required
-                  errorText={confirmPasswordError}
-                  disabled={isSubmitting}
-                />
-                <div className={styles.newPasswordActions}>
-                  <Button type="submit" fluid disabled={isSubmitting} aria-busy={isSubmitting}>
-                    パスワードを更新してログイン
-                  </Button>
-                </div>
-              </form>
+    <div className={styles.page}>
+      <span className={styles.pageLabel}>DashboardPage</span>
+      <main className={styles.shell}>
+        <header className={styles.header}>
+          <div className={styles.headerTitle}>
+            <h1>勤怠管理</h1>
+          </div>
+          <nav className={styles.headerNav} aria-label="メインメニュー">
+            {navItems.map((item) => {
+              const isActive = item.id === activeNav;
+              return (
+                <Button
+                  key={item.id}
+                  className={`${styles.navButton} ${isActive ? styles.navButtonActive : ""}`.trim()}
+                  type="button"
+                  variant={isActive ? "primary" : "secondary"}
+                  onClick={() => handleNavClick(item)}
+                  aria-pressed={isActive}
+                >
+                  <span className={styles.navIcon} aria-hidden />
+                  {item.label}
+                </Button>
+              );
+            })}
+          </nav>
+        </header>
+
+        <section className={styles.summary} aria-labelledby="monthly-summary">
+          <div className={styles.summaryHeader}>
+            <h2 id="monthly-summary">今月のサマリー（2025年9月）</h2>
+          </div>
+          <div className={styles.summaryGrid}>
+            <Card className={styles.summaryCard} spacing="section" role="region" aria-labelledby="summary-weekly">
+              <h3 id="summary-weekly">週単位のサマリー</h3>
+              <ul className={styles.summaryList}>
+                {weeklySummary.map((item) => (
+                  <li className={styles.summaryRow} key={item.range}>
+                    <span>{item.range}:</span>
+                    <span>{item.hours}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+            <Card className={styles.summaryCard} spacing="section" role="region" aria-labelledby="summary-tasks">
+              <h3 id="summary-tasks">作業項目別合計時間</h3>
+              <p className={styles.emptyCopy}>記録はまだありません。</p>
+            </Card>
+            <Card className={styles.summaryCard} spacing="section" role="region" aria-labelledby="summary-overtime">
+              <h3 id="summary-overtime">残業時間</h3>
+              <ul className={styles.summaryList}>
+                <li className={styles.summaryRow}>
+                  <span>通常残業:</span>
+                  <span>0.00 h</span>
+                </li>
+                <li className={styles.summaryRow}>
+                  <span>深夜残業:</span>
+                  <span>0.00 h</span>
+                </li>
+              </ul>
+            </Card>
+            <Card className={styles.summaryCard} spacing="section" role="region" aria-labelledby="summary-leave">
+              <h3 id="summary-leave">休暇</h3>
+              <ul className={styles.summaryList}>
+                <li className={styles.summaryRow}>
+                  <span>全休:</span>
+                  <span>0 D</span>
+                </li>
+                <li className={styles.summaryRow}>
+                  <span>時間休:</span>
+                  <span>0.00 h</span>
+                </li>
+              </ul>
+            </Card>
+          </div>
+        </section>
+
+        <section className={styles.requests} aria-labelledby="request-header">
+          <div className={styles.requestsHeader}>
+            <h2 id="request-header">申請</h2>
+          </div>
+          <Card className={styles.requestCard} spacing="section" role="region" aria-labelledby="auto-expense">
+            <div className={styles.requestContent}>
+              <span className={styles.requestBadge} aria-hidden />
+              <span id="auto-expense" className={styles.requestTitle}>
+                自動経費申請
+              </span>
+            </div>
+            <div className={styles.requestAction}>
+              <Button type="button" variant="primary" onClick={handleAutoExpense}>
+                申請ページを開く
+              </Button>
             </div>
           </Card>
-        )}
-      </section>
-      <section className={styles.heroColumn} aria-label="Stamperの特長">
-        <span className={styles.heroBadge}>Time &amp; Expense Platform</span>
-        <h2 className={styles.heroHeading}>
-          働き方を可視化し、勤怠と経費の管理をもっとスマートに。
-        </h2>
-        <p className={styles.heroBody}>
-          Stamperは日々の勤怠打刻から月次の承認フロー、経費申請までをワンストップで提供します。
-          データの整合性を保ちながらチーム全体の生産性を高めましょう。
-        </p>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }

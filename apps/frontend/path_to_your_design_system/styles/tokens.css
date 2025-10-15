@@ -7,9 +7,12 @@
   --color-surface-primary: #ffffff;
   --color-surface-muted: #f5f7fb;
   --color-surface-contrast: #e8edff;
+  --color-surface-backdrop: #2f3138;
+  --color-surface-shell: #f4f6fb;
   --color-border-subtle: #e5e7eb;
   --color-border-strong: #cbd5f5;
   --color-shadow-ambient: 0 24px 48px rgba(16, 24, 40, 0.08);
+  --color-shadow-elevated: 0 28px 55px rgba(12, 16, 25, 0.32);
   --color-shadow-focus: 0 0 0 3px rgba(62, 123, 250, 0.2);
   --color-text-primary: #1f2933;
   --color-text-secondary: #475467;
@@ -38,6 +41,7 @@
   --space-xl: 32px;
   --space-2xl: 40px;
   --space-3xl: 56px;
+  --space-4xl: 72px;
 
   /* Border radii */
   --radius-sm: 8px;

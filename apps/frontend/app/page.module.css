@@ -1,155 +1,204 @@
-.wrapper {
-  display: grid;
+.page {
   min-height: 100vh;
   padding: var(--space-3xl) var(--space-2xl);
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--space-2xl);
-  position: relative;
-  overflow: hidden;
-}
-
-.panelColumn {
-  grid-column: span 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.heroColumn {
-  grid-column: 7 / -1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  align-items: center;
   gap: var(--space-lg);
-  position: relative;
 }
 
-.heroColumn::before,
-.heroColumn::after {
-  content: "";
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(0px);
-  z-index: -1;
-}
-
-.heroColumn::before {
-  width: 420px;
-  height: 420px;
-  right: -40px;
-  top: -80px;
-  background: radial-gradient(60% 60% at 50% 50%, rgba(62, 123, 250, 0.22) 0%, rgba(62, 123, 250, 0) 100%);
-}
-
-.heroColumn::after {
-  width: 380px;
-  height: 380px;
-  right: 60px;
-  bottom: -120px;
-  background: radial-gradient(60% 60% at 50% 50%, rgba(0, 196, 154, 0.18) 0%, rgba(0, 196, 154, 0) 100%);
-}
-
-.heroHeading {
-  font-size: var(--font-size-xxl);
-  font-weight: 800;
-  line-height: 1.1;
-}
-
-.heroBody {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  max-width: 420px;
-  line-height: var(--line-height-relaxed);
-}
-
-.heroBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3xs);
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  background: rgba(62, 123, 250, 0.12);
+.pageLabel {
+  align-self: flex-start;
+  padding: var(--space-3xs) var(--space-sm);
+  background: var(--color-surface-contrast);
+  border: 1px solid var(--color-border-strong);
   color: var(--color-brand-primary);
-  font-weight: 600;
+  border-radius: var(--radius-xl);
   font-size: var(--font-size-sm);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: var(--font-letter-spacing-normal);
 }
 
-.newPasswordContainer {
+.shell {
+  width: min(1120px, 100%);
+  background: var(--color-surface-shell);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  gap: var(--space-2xl);
+  box-shadow: var(--color-shadow-elevated);
 }
 
-.newPasswordHeading {
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.headerTitle h1 {
+  margin: 0;
   font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
 }
 
-.newPasswordDescription {
-  color: var(--color-text-secondary);
+.headerNav {
+  display: flex;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+}
+
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  min-height: auto;
+  padding: var(--space-3xs) var(--space-md);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
-  margin-top: var(--space-2xs);
 }
 
-.newPasswordForm {
+.navIcon {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-primary-dark) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.navButtonActive {
+  box-shadow: var(--color-shadow-ambient);
+}
+
+.summary {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
 }
 
-.newPasswordActions {
-  display: flex;
-  flex-direction: column;
+.summaryHeader h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--space-sm);
 }
 
-.feedbackNotice,
-.feedbackError {
-  border-radius: var(--radius-md);
-  padding: var(--space-2xs) var(--space-sm);
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.summaryCard h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.summaryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.summaryRow span:last-child {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.emptyCopy {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.requests {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.requestsHeader h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.requestCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.requestBadge {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-brand-secondary) 0%, var(--color-brand-primary) 100%);
+  flex-shrink: 0;
+}
+
+.requestContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.requestTitle {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.requestAction {
   margin-top: var(--space-sm);
+  align-self: flex-start;
 }
 
-.feedbackNotice {
-  background: rgba(62, 123, 250, 0.12);
-  color: var(--color-brand-primary);
-}
-
-.feedbackError {
-  background: rgba(255, 107, 107, 0.12);
-  color: var(--color-brand-accent);
-}
-
-@media (max-width: 1200px) {
-  .wrapper {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+@media (max-width: 960px) {
+  .page {
     padding: var(--space-2xl) var(--space-lg);
   }
 
-  .panelColumn {
-    grid-column: 1 / -1;
-    order: 2;
+  .shell {
+    padding: var(--space-xl) var(--space-lg);
+    border-radius: var(--radius-lg);
   }
 
-  .heroColumn {
-    grid-column: 1 / -1;
-    order: 1;
-    align-items: center;
-    text-align: center;
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .heroColumn::before,
-  .heroColumn::after {
-    display: none;
+  .headerNav {
+    width: 100%;
   }
 
-  .heroBody {
-    max-width: none;
+  .navButton {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }
