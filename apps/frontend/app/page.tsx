@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "../path_to_your_design_system/components";
+import { mainNavItems } from "./navItems";
 import styles from "./page.module.css";
 
 const weeklySummary = [
@@ -10,19 +11,12 @@ const weeklySummary = [
   { range: "10/6 ～ 10/12", hours: "40.00 h" }
 ];
 
-const navItems = [
-  { id: "dashboard", label: "ダッシュボード", href: "/" },
-  { id: "time-entry", label: "時間記録", href: "/time-entry" },
-  { id: "timesheet", label: "勤務表", href: "/timesheet" },
-  { id: "bulk-edit", label: "一括編集", href: "/bulk-edit" }
-];
-
 export default function Page() {
   const router = useRouter();
   const [activeNav, setActiveNav] = React.useState("dashboard");
 
   const handleNavClick = React.useCallback(
-    (item: typeof navItems[number]) => {
+    (item: (typeof mainNavItems)[number]) => {
       setActiveNav(item.id);
       router.push(item.href);
     },
@@ -42,7 +36,7 @@ export default function Page() {
             <h1>勤怠管理</h1>
           </div>
           <nav className={styles.headerNav} aria-label="メインメニュー">
-            {navItems.map((item) => {
+            {mainNavItems.map((item) => {
               const isActive = item.id === activeNav;
               return (
                 <Button

@@ -2,18 +2,24 @@
 
 import clsx from "clsx";
 import React from "react";
-import styles from "./TextField.module.css";
+import styles from "./SelectField.module.css";
 
-type TextFieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
+type Option = {
+  value: string;
   label: string;
+};
+
+type SelectFieldProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   id: string;
+  label: string;
+  options: Option[];
   supportingText?: string;
   errorText?: string;
 };
 
-export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
-  ({ label, id, type = "text", supportingText, errorText, className, ...props }, ref) => {
-    const describedBy = [] as string[];
+export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>(
+  ({ id, label, options, supportingText, errorText, className, ...props }, ref) => {
+    const describedBy: string[] = [];
     if (supportingText) describedBy.push(`${id}-support`);
     if (errorText) describedBy.push(`${id}-error`);
 
@@ -22,16 +28,21 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
         <label className={styles.label} htmlFor={id}>
           {label}
         </label>
-        <div className={styles.inputWrapper}>
-          <input
+        <div className={styles.selectWrapper}>
+          <select
             ref={ref}
             id={id}
-            type={type}
-            className={styles.input}
+            className={styles.select}
             aria-invalid={Boolean(errorText)}
             aria-describedby={describedBy.join(" ") || undefined}
             {...props}
-          />
+          >
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
         {supportingText && !errorText ? (
           <p id={`${id}-support`} className={styles.supportingText}>
@@ -48,4 +59,4 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
   }
 );
 
-TextField.displayName = "TextField";
+SelectField.displayName = "SelectField";
