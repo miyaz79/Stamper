@@ -198,11 +198,8 @@ export default function DashboardPage() {
         <section className="mt-12 flex flex-col gap-4" aria-labelledby="admin-shortcuts">
           <div>
             <h2 id="admin-shortcuts" className="text-xl font-semibold text-text-primary">
-              管理者向けショートカット
+              管理
             </h2>
-            <p className="mt-1 text-sm text-text-tertiary">
-              管理業務の主要画面へ素早くアクセスできます。
-            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {adminDestinations.map((destination) => (
