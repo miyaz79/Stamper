@@ -65,6 +65,29 @@ export default function DashboardPage() {
     router.push("/expenses/auto");
   }, [router]);
 
+  const handleAttendanceApproval = useCallback(() => {
+    router.push("/admin/attendance-approval");
+  }, [router]);
+
+  const requestShortcuts = [
+    {
+      id: "auto-expense",
+      indicatorClass: "bg-gradient-to-tr from-brand-secondary to-brand-primary",
+      title: "自動経費申請",
+      description: "アップロードした領収書をOCR解析して申請を作成します。",
+      actionLabel: "申請ページを開く",
+      onClick: handleAutoExpense
+    },
+    {
+      id: "attendance-approval",
+      indicatorClass: "bg-gradient-to-tr from-brand-primary-dark to-brand-secondary",
+      title: "勤怠承認",
+      description: "提出された勤務表の内容を確認し承認または差戻しできます。",
+      actionLabel: "勤怠承認へ",
+      onClick: handleAttendanceApproval
+    }
+  ];
+
   if (!isAuthorized) {
     return null;
   }
@@ -212,22 +235,32 @@ export default function DashboardPage() {
               申請
             </h2>
           </div>
-          <Card spacing="section" role="region" aria-labelledby="auto-expense">
-            <div className="flex items-center gap-3">
-              <span
-                className="h-3 w-3 rounded-full bg-gradient-to-tr from-brand-secondary to-brand-primary"
-                aria-hidden
-              />
-              <span id="auto-expense" className="text-lg font-semibold text-text-primary">
-                自動経費申請
-              </span>
-            </div>
-            <div>
-              <Button type="button" variant="primary" onClick={handleAutoExpense}>
-                申請ページを開く
-              </Button>
-            </div>
-          </Card>
+          <div className="grid gap-4 md:grid-cols-2">
+            {requestShortcuts.map((shortcut) => (
+              <Card
+                key={shortcut.id}
+                spacing="section"
+                role="region"
+                aria-labelledby={`${shortcut.id}-title`}
+                className="flex h-full flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className={`h-3 w-3 rounded-full ${shortcut.indicatorClass}`} aria-hidden />
+                    <h3 id={`${shortcut.id}-title`} className="text-lg font-semibold text-text-primary">
+                      {shortcut.title}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-sm text-text-tertiary">{shortcut.description}</p>
+                </div>
+                <div className="mt-6">
+                  <Button type="button" variant="primary" onClick={shortcut.onClick}>
+                    {shortcut.actionLabel}
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
         </section>
       </main>
     </div>
