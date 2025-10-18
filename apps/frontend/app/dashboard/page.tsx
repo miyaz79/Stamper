@@ -11,6 +11,21 @@ const weeklySummary = [
   { range: "10/6 ～ 10/12", hours: "40.00 h" }
 ];
 
+const adminDestinations = [
+  {
+    id: "work-summary",
+    title: "作業時間集計",
+    description: "部門・メンバー別の勤怠状況を俯瞰できます。",
+    href: "/admin/work-summary"
+  },
+  {
+    id: "task-management",
+    title: "作業項目管理",
+    description: "大・中・小分類の作業項目を最新の構成に保ちます。",
+    href: "/admin/task-management"
+  }
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -148,6 +163,46 @@ export default function DashboardPage() {
                 </li>
               </ul>
             </Card>
+          </div>
+        </section>
+
+        <section className="mt-12 flex flex-col gap-4" aria-labelledby="admin-shortcuts">
+          <div>
+            <h2 id="admin-shortcuts" className="text-xl font-semibold text-text-primary">
+              管理者向けショートカット
+            </h2>
+            <p className="mt-1 text-sm text-text-tertiary">
+              管理業務の主要画面へ素早くアクセスできます。
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {adminDestinations.map((destination) => (
+              <Card
+                key={destination.id}
+                spacing="section"
+                className="flex h-full flex-col justify-between"
+                role="region"
+                aria-labelledby={`${destination.id}-title`}
+              >
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="h-3 w-3 rounded-full bg-gradient-to-tr from-brand-primary to-brand-secondary"
+                      aria-hidden
+                    />
+                    <h3 id={`${destination.id}-title`} className="text-lg font-semibold text-text-primary">
+                      {destination.title}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-sm text-text-tertiary">{destination.description}</p>
+                </div>
+                <div className="mt-6">
+                  <Button type="button" variant="secondary" onClick={() => router.push(destination.href)}>
+                    管理画面を開く
+                  </Button>
+                </div>
+              </Card>
+            ))}
           </div>
         </section>
 
