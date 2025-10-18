@@ -1,8 +1,13 @@
 import { test, expect } from "@playwright/test";
+import { loginToApp } from "./utils/auth";
 
 test.describe("ダッシュボード", () => {
+  test.beforeEach(async ({ page }) => {
+    await loginToApp(page);
+  });
+
   test("主要ウィジェットが表示される", async ({ page }) => {
-    await page.goto("/");
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     await expect(page.getByText("DashboardPage")).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: "勤怠管理" })).toBeVisible();
@@ -16,8 +21,6 @@ test.describe("ダッシュボード", () => {
   });
 
   test("ナビゲーション操作でアクティブ状態が更新される", async ({ page }) => {
-    await page.goto("/");
-
     const timeEntryButton = page.getByRole("button", { name: "時間記録" });
     await timeEntryButton.click();
 

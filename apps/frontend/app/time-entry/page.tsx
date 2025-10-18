@@ -9,6 +9,7 @@ import {
   SelectField,
   TextField
 } from "../../path_to_your_design_system/components";
+import { getCurrentCognitoSession } from "../../lib/cognitoClient";
 import { mainNavItems, type MainNavItemId } from "../navItems";
 import styles from "./page.module.css";
 
@@ -162,6 +163,7 @@ const computeSummary = (
 
 export default function TimeEntryPage() {
   const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = React.useState(false);
   const [activeNav, setActiveNav] = React.useState<MainNavItemId>("time-entry");
   const [workItems, setWorkItems] = React.useState<WorkItem[]>([createWorkItem(), createWorkItem(), createWorkItem()]);
   const [selectedDate, setSelectedDate] = React.useState<string>(() => formatDateForInput(new Date()));
@@ -169,6 +171,28 @@ export default function TimeEntryPage() {
   const [leaveType, setLeaveType] = React.useState<LeaveType>("full");
   const [hourlyLeaveHours, setHourlyLeaveHours] = React.useState("0.0");
   const [message, setMessage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let canceled = false;
+
+    getCurrentCognitoSession()
+      .then((session) => {
+        if (canceled) return;
+        if (!session) {
+          router.replace("/");
+          return;
+        }
+        setIsAuthorized(true);
+      })
+      .catch((err) => {
+        console.warn("Failed to verify Cognito session on time-entry", err);
+        router.replace("/");
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [router]);
 
   const summary = React.useMemo(
     () => computeSummary(selectedDate, workItems, isLeave, leaveType, hourlyLeaveHours),
@@ -224,6 +248,10 @@ export default function TimeEntryPage() {
     },
     []
   );
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className={styles.page}>

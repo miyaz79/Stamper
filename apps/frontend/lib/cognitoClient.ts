@@ -3,7 +3,7 @@ import {
   CognitoUser,
   CognitoUserPool,
   CognitoUserSession,
-  IStorage
+  ICognitoStorage
 } from "amazon-cognito-identity-js";
 
 export type SignInCredentials = {
@@ -50,7 +50,7 @@ function assertBrowser() {
   }
 }
 
-function createStorage(target: Storage): IStorage {
+function createStorage(target: Storage): ICognitoStorage {
   return {
     setItem: (key: string, value: string) => target.setItem(key, value),
     getItem: (key: string) => target.getItem(key) ?? null,
@@ -59,7 +59,7 @@ function createStorage(target: Storage): IStorage {
   };
 }
 
-function buildUserPool(storage: IStorage) {
+function buildUserPool(storage: ICognitoStorage) {
   const { userPoolId, clientId } = getEnvConfig();
 
   return new CognitoUserPool({
@@ -196,4 +196,43 @@ export async function signOutFromCognito(): Promise<void> {
     const currentUser = userPool.getCurrentUser();
     currentUser?.signOut();
   });
+}
+
+export async function getCurrentCognitoSession(): Promise<CognitoUserSession | null> {
+  assertBrowser();
+
+  const storages = collectBrowserStorages();
+
+  for (const storage of storages) {
+    const userPool = buildUserPool(createStorage(storage));
+    const currentUser = userPool.getCurrentUser();
+    if (!currentUser) {
+      continue;
+    }
+
+    const session = await new Promise<CognitoUserSession | null>((resolve) => {
+      currentUser.getSession((err: Error | null, result: CognitoUserSession | null) => {
+        if (err) {
+          console.warn("Cognito session retrieval failed", err);
+          currentUser.signOut();
+          resolve(null);
+          return;
+        }
+
+        if (!result || !result.isValid()) {
+          currentUser.signOut();
+          resolve(null);
+          return;
+        }
+
+        resolve(result);
+      });
+    });
+
+    if (session) {
+      return session;
+    }
+  }
+
+  return null;
 }

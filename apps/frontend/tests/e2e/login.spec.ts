@@ -10,7 +10,6 @@ test.describe("Cognito ログイン", () => {
     const emailInput = page.locator("#email");
     const passwordInput = page.locator("#password");
     const submitButton = page.getByRole("button", { name: "ログイン" });
-    const successStatus = page.getByRole("status");
 
     await page.goto("/");
 
@@ -18,7 +17,8 @@ test.describe("Cognito ログイン", () => {
     await passwordInput.fill(password!);
     await submitButton.click();
 
-    await expect(successStatus).toHaveText(/ログインに成功しました。/);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByText("DashboardPage")).toBeVisible();
 
     await page.waitForLoadState("networkidle");
     await page.evaluate(() => {

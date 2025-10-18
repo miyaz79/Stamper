@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { loginToApp } from "./utils/auth";
 
 test.describe("時間記録", () => {
+  test.beforeEach(async ({ page }) => {
+    await loginToApp(page);
+  });
+
   test("日次勤怠記録画面が表示される", async ({ page }) => {
     await page.goto("/time-entry");
 
