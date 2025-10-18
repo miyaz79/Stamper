@@ -30,3 +30,57 @@ export interface AttendanceSaveResponse {
   id: string;
   calcResults: CalcResults;
 }
+
+export type CategoryLevel = "department" | "project" | "task";
+
+export interface CategoryNode {
+  id: string;
+  name: string;
+  description: string;
+  level: CategoryLevel;
+  order: number;
+  isActive: boolean;
+  parentId: string | null;
+  children: CategoryNode[];
+}
+
+export interface CategoryTotals {
+  departments: number;
+  projects: number;
+  tasks: number;
+  inactive: number;
+}
+
+export interface CategoryTreeResponse {
+  categories: CategoryNode[];
+  totals: CategoryTotals;
+}
+
+export interface CategoryCreateRequest {
+  name?: string;
+  description?: string;
+  level: CategoryLevel;
+  parentId?: string | null;
+  isActive?: boolean;
+  order?: number;
+}
+
+export interface CategoryCreateResponse {
+  category: CategoryNode;
+  categories: CategoryNode[];
+  totals: CategoryTotals;
+}
+
+export interface CategoryUpdateRequest {
+  name: string;
+  description?: string;
+  order: number;
+  isActive: boolean;
+  parentId: string | null;
+}
+
+export interface CategoryUpdateResponse {
+  category: CategoryNode;
+  categories: CategoryNode[];
+  totals: CategoryTotals;
+}

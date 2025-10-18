@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react";
 import { useRouter } from "next/navigation";
@@ -30,7 +31,7 @@ type CategoryNode = {
   children: CategoryNode[];
 };
 
-const categoryTree: CategoryNode[] = [
+const initialCategoryTree: CategoryNode[] = [
   {
     id: "dept-dev",
     name: "開発部",
@@ -171,8 +172,6 @@ const flattenTree = (nodes: CategoryNode[]): CategoryNode[] => {
   return list;
 };
 
-const allNodes = flattenTree(categoryTree);
-
 const levelLabel: Record<CategoryLevel, string> = {
   department: "大分類（部署）",
   project: "中分類（プロジェクト）",
@@ -188,14 +187,218 @@ type FormDraft = {
   parentId: string | null;
 };
 
+const generateCategoryId = (): string =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `category-${Math.random().toString(36).slice(2, 10)}`;
+
+const sortTree = (nodes: CategoryNode[]): CategoryNode[] => {
+  return [...nodes]
+    .map((node) => ({
+      ...node,
+      children: sortTree(node.children)
+    }))
+    .sort((a, b) => {
+      if (a.order !== b.order) {
+        return a.order - b.order;
+      }
+      return a.name.localeCompare(b.name, "ja");
+    });
+};
+
+const updateNodeById = (
+  nodes: CategoryNode[],
+  id: string,
+  updater: (node: CategoryNode) => CategoryNode
+): { nodes: CategoryNode[]; updated: boolean } => {
+  let updated = false;
+  const nextNodes = nodes.map((node) => {
+    if (node.id === id) {
+      updated = true;
+      return updater(node);
+    }
+    if (node.children.length > 0) {
+      const childResult = updateNodeById(node.children, id, updater);
+      if (childResult.updated) {
+        updated = true;
+        return {
+          ...node,
+          children: childResult.nodes
+        };
+      }
+    }
+    return node;
+  });
+  return {
+    nodes: updated ? nextNodes : nodes,
+    updated
+  };
+};
+
+const removeNodeById = (
+  nodes: CategoryNode[],
+  id: string
+): { nodes: CategoryNode[]; removed: CategoryNode | null; changed: boolean } => {
+  let removed: CategoryNode | null = null;
+  let changed = false;
+  const nextNodes: CategoryNode[] = [];
+
+  nodes.forEach((node) => {
+    if (node.id === id) {
+      removed = node;
+      changed = true;
+      return;
+    }
+
+    if (removed) {
+      nextNodes.push(node);
+      return;
+    }
+
+    if (node.children.length > 0) {
+      const childResult = removeNodeById(node.children, id);
+      if (childResult.removed) {
+        removed = childResult.removed;
+        changed = true;
+        nextNodes.push({
+          ...node,
+          children: childResult.nodes
+        });
+        return;
+      }
+    }
+
+    nextNodes.push(node);
+  });
+
+  return {
+    nodes: changed ? nextNodes : nodes,
+    removed,
+    changed
+  };
+};
+
+const insertNode = (
+  nodes: CategoryNode[],
+  parentId: string | null,
+  nodeToInsert: CategoryNode
+): { nodes: CategoryNode[]; inserted: boolean } => {
+  if (parentId === null) {
+    return {
+      nodes: [...nodes, nodeToInsert],
+      inserted: true
+    };
+  }
+
+  let inserted = false;
+  const nextNodes = nodes.map((node) => {
+    if (node.id === parentId) {
+      inserted = true;
+      return {
+        ...node,
+        children: [...node.children, nodeToInsert]
+      };
+    }
+    if (node.children.length > 0) {
+      const childResult = insertNode(node.children, parentId, nodeToInsert);
+      if (childResult.inserted) {
+        inserted = true;
+        return {
+          ...node,
+          children: childResult.nodes
+        };
+      }
+    }
+    return node;
+  });
+
+  return {
+    nodes: inserted ? nextNodes : nodes,
+    inserted
+  };
+};
+
+const findNodeById = (nodes: CategoryNode[], id: string): CategoryNode | null => {
+  for (const node of nodes) {
+    if (node.id === id) {
+      return node;
+    }
+    if (node.children.length > 0) {
+      const found = findNodeById(node.children, id);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+};
+
+const getChildrenOfParent = (nodes: CategoryNode[], parentId: string | null): CategoryNode[] => {
+  if (parentId === null) {
+    return nodes;
+  }
+  const parentNode = findNodeById(nodes, parentId);
+  return parentNode ? parentNode.children : [];
+};
+
+const collectDescendantIds = (node: CategoryNode | null): Set<string> => {
+  const ids = new Set<string>();
+  if (!node) {
+    return ids;
+  }
+  const stack: CategoryNode[] = [...node.children];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) {
+      continue;
+    }
+    ids.add(current.id);
+    if (current.children.length > 0) {
+      stack.push(...current.children);
+    }
+  }
+  return ids;
+};
+
 export default function TaskManagementPage() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeNav, setActiveNav] = useState<MainNavItemId | null>(null);
-  const [selectedId, setSelectedId] = useState<string>(categoryTree[0]?.id ?? "");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(allNodes.map((node) => node.id)));
+  const [categories, setCategories] = useState<CategoryNode[]>(initialCategoryTree);
+  const [selectedId, setSelectedId] = useState<string>(initialCategoryTree[0]?.id ?? "");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(flattenTree(initialCategoryTree).map((node) => node.id))
+  );
   const [formDraft, setFormDraft] = useState<FormDraft | null>(null);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormDraft, string>>>({});
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const statusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showStatusMessage = useCallback((message: string, duration = 2500) => {
+    if (statusTimeoutRef.current) {
+      clearTimeout(statusTimeoutRef.current);
+    }
+    setStatusMessage(message);
+    statusTimeoutRef.current = setTimeout(() => {
+      setStatusMessage(null);
+      statusTimeoutRef.current = null;
+    }, duration);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (statusTimeoutRef.current) {
+        clearTimeout(statusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const allNodes = useMemo(() => flattenTree(categories), [categories]);
+  const selectedNode = useMemo(
+    () => allNodes.find((node) => node.id === selectedId) ?? null,
+    [allNodes, selectedId]
+  );
+  const descendantIds = useMemo(() => collectDescendantIds(selectedNode), [selectedNode]);
 
   useEffect(() => {
     let canceled = false;
@@ -219,11 +422,10 @@ export default function TaskManagementPage() {
     };
   }, [router]);
 
-  const selectedNode = useMemo(() => allNodes.find((node) => node.id === selectedId) ?? null, [selectedId]);
-
   useEffect(() => {
     if (!selectedNode) {
       setFormDraft(null);
+      setFormErrors({});
       return;
     }
     setFormDraft({
@@ -234,6 +436,7 @@ export default function TaskManagementPage() {
       level: selectedNode.level,
       parentId: selectedNode.parentId
     });
+    setFormErrors({});
   }, [selectedNode]);
 
   const totals = useMemo(() => {
@@ -242,7 +445,7 @@ export default function TaskManagementPage() {
     const tasks = allNodes.filter((node) => node.level === "task").length;
     const inactive = allNodes.filter((node) => !node.isActive).length;
     return { departments, projects, tasks, inactive };
-  }, []);
+  }, [allNodes]);
 
   const handleNavClick = useCallback(
     (item: (typeof mainNavItems)[number]) => {
@@ -266,42 +469,222 @@ export default function TaskManagementPage() {
 
   const handleFormChange = useCallback(<K extends keyof FormDraft>(key: K, value: FormDraft[K]) => {
     setFormDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setFormErrors((prev) => {
+      if (!prev[key]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }, []);
 
   const handleSave = useCallback(() => {
     if (!formDraft || !selectedNode) {
       return;
     }
-    setStatusMessage(`「${formDraft.name}」を保存しました。（モック処理）`);
-    setTimeout(() => setStatusMessage(null), 3000);
-  }, [formDraft, selectedNode]);
+
+    const trimmedName = formDraft.name.trim();
+    const parsedOrder = Number.parseInt(formDraft.order, 10);
+    const parentRequired = formDraft.level !== "department";
+
+    const errors: Partial<Record<keyof FormDraft, string>> = {};
+    if (!trimmedName) {
+      errors.name = "項目名を入力してください";
+    }
+    if (Number.isNaN(parsedOrder) || parsedOrder < 1) {
+      errors.order = "1以上の整数を入力してください";
+    }
+    if (parentRequired && !formDraft.parentId) {
+      errors.parentId = "親階層を選択してください";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      showStatusMessage("入力内容を確認してください。", 3000);
+      return;
+    }
+
+    const nextParentId = formDraft.level === "department" ? null : formDraft.parentId;
+    const parentChanged = selectedNode.parentId !== nextParentId;
+    let saveSucceeded = false;
+
+    setCategories((prev) => {
+      if (!selectedNode) {
+        return prev;
+      }
+
+      if (parentChanged) {
+        const removal = removeNodeById(prev, selectedNode.id);
+        if (!removal.removed) {
+          return prev;
+        }
+        const updatedNode: CategoryNode = {
+          ...removal.removed,
+          name: trimmedName,
+          description: formDraft.description,
+          order: parsedOrder,
+          isActive: formDraft.isActive,
+          parentId: nextParentId,
+          children: removal.removed.children
+        };
+        const insertion = insertNode(removal.nodes, nextParentId, updatedNode);
+        if (!insertion.inserted) {
+          return prev;
+        }
+        saveSucceeded = true;
+        return sortTree(insertion.nodes);
+      }
+
+      const updateResult = updateNodeById(prev, selectedNode.id, (node) => ({
+        ...node,
+        name: trimmedName,
+        description: formDraft.description,
+        order: parsedOrder,
+        isActive: formDraft.isActive,
+        parentId: node.level === "department" ? null : nextParentId
+      }));
+
+      if (!updateResult.updated) {
+        saveSucceeded = true;
+        return prev;
+      }
+
+      saveSucceeded = true;
+      return sortTree(updateResult.nodes);
+    });
+
+    if (!saveSucceeded) {
+      showStatusMessage("保存に失敗しました。再度お試しください。", 3000);
+      return;
+    }
+
+    setFormDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            name: trimmedName,
+            order: String(parsedOrder),
+            parentId: nextParentId
+          }
+        : prev
+    );
+    setFormErrors({});
+    showStatusMessage(`「${trimmedName}」を保存しました。`, 3000);
+
+    if (parentChanged && nextParentId) {
+      setExpandedIds((prev) => {
+        const next = new Set(prev);
+        next.add(nextParentId);
+        return next;
+      });
+    }
+  }, [formDraft, selectedNode, showStatusMessage]);
 
   const handleAddSibling = useCallback(() => {
-    if (!selectedNode) return;
-    const label = levelLabel[selectedNode.level];
-    setStatusMessage(`${label}の同階層追加は現在準備中です。`);
-    setTimeout(() => setStatusMessage(null), 2500);
-  }, [selectedNode]);
+    if (!selectedNode) {
+      return;
+    }
+
+    let createdNode: CategoryNode | null = null;
+    setCategories((prev) => {
+      const siblings = getChildrenOfParent(prev, selectedNode.parentId);
+      const nextOrder = siblings.reduce((max, node) => Math.max(max, node.order), 0) + 1;
+      createdNode = {
+        id: generateCategoryId(),
+        name: `${levelLabel[selectedNode.level]}（新規）`,
+        description: "",
+        level: selectedNode.level,
+        order: nextOrder,
+        isActive: true,
+        parentId: selectedNode.parentId,
+        children: []
+      };
+      const insertion = insertNode(prev, selectedNode.parentId, createdNode);
+      if (!insertion.inserted) {
+        createdNode = null;
+        return prev;
+      }
+      return sortTree(insertion.nodes);
+    });
+
+    if (!createdNode) {
+      showStatusMessage("項目の追加に失敗しました。再度お試しください。", 3000);
+      return;
+    }
+
+    setFormErrors({});
+    setSelectedId(createdNode.id);
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (createdNode?.parentId) {
+        next.add(createdNode.parentId);
+      }
+      next.add(createdNode.id);
+      return next;
+    });
+    showStatusMessage(`${levelLabel[selectedNode.level]}を追加しました。`);
+  }, [selectedNode, showStatusMessage]);
 
   const handleAddChild = useCallback(() => {
-    if (!selectedNode) return;
-    const nextLevel: Record<CategoryLevel, CategoryLevel | null> = {
+    if (!selectedNode) {
+      return;
+    }
+
+    const nextLevelMap: Record<CategoryLevel, CategoryLevel | null> = {
       department: "project",
       project: "task",
       task: null
     };
-    const level = nextLevel[selectedNode.level];
-    if (!level) {
-      setStatusMessage("小分類より下の階層は追加できません。");
-      setTimeout(() => setStatusMessage(null), 2500);
+    const childLevel = nextLevelMap[selectedNode.level];
+    if (!childLevel) {
+      showStatusMessage("小分類より下の階層は追加できません。", 2500);
       return;
     }
-    setStatusMessage(`${levelLabel[level]}の新規追加は現在準備中です。`);
-    setTimeout(() => setStatusMessage(null), 2500);
-  }, [selectedNode]);
+
+    let createdNode: CategoryNode | null = null;
+    setCategories((prev) => {
+      const parentNode = findNodeById(prev, selectedNode.id);
+      const children = parentNode ? parentNode.children : [];
+      const nextOrder = children.reduce((max, node) => Math.max(max, node.order), 0) + 1;
+      createdNode = {
+        id: generateCategoryId(),
+        name: `${levelLabel[childLevel]}（新規）`,
+        description: "",
+        level: childLevel,
+        order: nextOrder,
+        isActive: true,
+        parentId: selectedNode.id,
+        children: []
+      };
+      const insertion = insertNode(prev, selectedNode.id, createdNode);
+      if (!insertion.inserted) {
+        createdNode = null;
+        return prev;
+      }
+      return sortTree(insertion.nodes);
+    });
+
+    if (!createdNode) {
+      showStatusMessage("項目の追加に失敗しました。再度お試しください。", 3000);
+      return;
+    }
+
+    setFormErrors({});
+    setSelectedId(createdNode.id);
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.add(selectedNode.id);
+      next.add(createdNode.id);
+      return next;
+    });
+    showStatusMessage(`${levelLabel[childLevel]}を追加しました。`);
+  }, [selectedNode, showStatusMessage]);
 
   const handleReset = useCallback(() => {
-    if (!selectedNode) return;
+    if (!selectedNode) {
+      return;
+    }
     setFormDraft({
       name: selectedNode.name,
       description: selectedNode.description,
@@ -310,9 +693,9 @@ export default function TaskManagementPage() {
       level: selectedNode.level,
       parentId: selectedNode.parentId
     });
-    setStatusMessage("フォーム内容を元に戻しました。");
-    setTimeout(() => setStatusMessage(null), 2000);
-  }, [selectedNode]);
+    setFormErrors({});
+    showStatusMessage("フォーム内容を元に戻しました。", 2000);
+  }, [selectedNode, showStatusMessage]);
 
   const availableParentOptions = useMemo(() => {
     if (!selectedNode) {
@@ -330,9 +713,11 @@ export default function TaskManagementPage() {
         candidates = allNodes.filter((node) => node.level === "project");
         break;
     }
-    const filtered = candidates.filter((candidate) => candidate.id !== selectedNode.id);
+    const filtered = candidates.filter(
+      (candidate) => candidate.id !== selectedNode.id && !descendantIds.has(candidate.id)
+    );
     return filtered.map((candidate) => ({ value: candidate.id, label: `${candidate.name} (${levelLabel[candidate.level]})` }));
-  }, [selectedNode]);
+  }, [allNodes, descendantIds, selectedNode]);
 
   const renderTree = useCallback((nodes: CategoryNode[], depth = 0) => {
     return nodes.map((node) => {
@@ -472,7 +857,7 @@ export default function TaskManagementPage() {
               <span className="text-xs text-text-tertiary">クリックで選択 / プラスで展開</span>
             </header>
             <ul className="space-y-2" aria-label="作業項目ツリー">
-              {renderTree(categoryTree)}
+              {renderTree(categories)}
             </ul>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={handleAddSibling}>
@@ -501,6 +886,7 @@ export default function TaskManagementPage() {
                     label="項目名"
                     value={formDraft.name}
                     onChange={(event) => handleFormChange("name", event.target.value)}
+                    errorText={formErrors.name}
                   />
                   <TextField
                     id="category-order"
@@ -509,6 +895,7 @@ export default function TaskManagementPage() {
                     min="1"
                     value={formDraft.order}
                     onChange={(event) => handleFormChange("order", event.target.value)}
+                    errorText={formErrors.order}
                   />
                   <TextField
                     id="category-description"
@@ -531,6 +918,7 @@ export default function TaskManagementPage() {
                     }
                     disabled={selectedNode?.level === "department"}
                     className="md:col-span-2"
+                    errorText={formErrors.parentId}
                   />
                 </div>
                 <CheckboxField
@@ -566,10 +954,13 @@ export default function TaskManagementPage() {
                 </h2>
                 <p className="text-sm text-text-secondary">近日、検索とフィルタリング機能を追加予定です。</p>
               </div>
-              <Button type="button" variant="secondary" onClick={() => {
-                setStatusMessage("変更履歴のエクスポートは現在準備中です。");
-                setTimeout(() => setStatusMessage(null), 2500);
-              }}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  showStatusMessage("変更履歴のエクスポートは現在準備中です。", 2500);
+                }}
+              >
                 履歴をエクスポート
               </Button>
             </header>

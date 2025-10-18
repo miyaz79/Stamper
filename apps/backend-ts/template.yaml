@@ -100,6 +100,39 @@ Resources:
         EntryPoints:
           - src/handlers/attendance.ts
 
+  CategoriesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: src/handlers/categories
+      Events:
+        ListCategories:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /admin/categories
+            Method: GET
+        CreateCategory:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /admin/categories
+            Method: POST
+        UpdateCategory:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /admin/categories/{categoryId}
+            Method: PUT
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/categories.ts
+
   AuthFunction:
     Type: AWS::Serverless::Function
     Properties:

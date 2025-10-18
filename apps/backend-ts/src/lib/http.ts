@@ -4,10 +4,7 @@ const jsonHeaders = {
   "content-type": "application/json"
 };
 
-export function jsonResponse(
-  statusCode: number,
-  body: Record<string, unknown>
-): APIGatewayProxyStructuredResultV2 {
+export function jsonResponse(statusCode: number, body: unknown): APIGatewayProxyStructuredResultV2 {
   return {
     statusCode,
     headers: jsonHeaders,
