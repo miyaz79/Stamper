@@ -1,9 +1,14 @@
 "use client";
 
-import React from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent
+} from "react";
 import { useRouter } from "next/navigation";
 import { LoginPanel, Card, TextField, Button } from "../path_to_your_design_system/components";
-import styles from "./login.module.css";
 import {
   signInWithCognito,
   completeNewPasswordChallenge,
@@ -33,12 +38,12 @@ type NewPasswordFormProps = {
 };
 
 function NewPasswordForm({ challenge, isSubmitting, errorMessage, onSubmit, onCancel }: NewPasswordFormProps) {
-  const [newPassword, setNewPassword] = React.useState("");
-  const [confirmPassword, setConfirmPassword] = React.useState("");
-  const [localError, setLocalError] = React.useState<string | undefined>();
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [localError, setLocalError] = useState<string | undefined>();
 
-  const handleSubmit = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (isSubmitting) return;
 
@@ -58,14 +63,15 @@ function NewPasswordForm({ challenge, isSubmitting, errorMessage, onSubmit, onCa
     [confirmPassword, isSubmitting, newPassword, onSubmit]
   );
 
+  const message = useMemo(() => localError ?? errorMessage, [errorMessage, localError]);
+
   return (
-    <Card spacing="section" className={styles.challengeCard}>
-      <form className={styles.challengeForm} onSubmit={handleSubmit} noValidate>
-        <header className={styles.challengeHeader}>
-          <h1>パスワードの更新が必要です</h1>
-          <p>
-            {challenge.email}
-            のアカウントは初回ログインのため、新しいパスワードの設定が必要です。
+    <Card spacing="section" className="w-full gap-6 rounded-[var(--radius-xl)] shadow-elevated">
+      <form className="flex flex-col gap-6" onSubmit={handleSubmit} noValidate>
+        <header className="space-y-2">
+          <h1 className="text-xl font-semibold text-text-primary">パスワードの更新が必要です</h1>
+          <p className="text-sm leading-relaxed text-text-secondary">
+            {challenge.email} のアカウントは初回ログインのため、新しいパスワードの設定が必要です。
           </p>
         </header>
         <TextField
@@ -87,16 +93,20 @@ function NewPasswordForm({ challenge, isSubmitting, errorMessage, onSubmit, onCa
           onChange={(event) => setConfirmPassword(event.target.value)}
           disabled={isSubmitting}
         />
-        {(localError || errorMessage) ? (
-          <div className={styles.challengeError} role="alert" aria-live="assertive">
-            {localError ?? errorMessage}
+        {message ? (
+          <div
+            className="rounded-[var(--radius-md)] border border-brand-accent/30 bg-brand-accent/10 px-4 py-3 text-sm text-brand-accent"
+            role="alert"
+            aria-live="assertive"
+          >
+            {message}
           </div>
         ) : null}
-        <div className={styles.challengeActions}>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit" variant="primary" disabled={isSubmitting} className="flex-1 min-w-[160px]">
             {isSubmitting ? "更新中..." : "パスワードを更新"}
           </Button>
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting} className="flex-1 min-w-[160px]">
             ログインに戻る
           </Button>
         </div>
@@ -107,14 +117,14 @@ function NewPasswordForm({ challenge, isSubmitting, errorMessage, onSubmit, onCa
 
 export default function LoginPage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState<string | undefined>();
-  const [successMessage, setSuccessMessage] = React.useState<string | undefined>();
-  const [challenge, setChallenge] = React.useState<ChallengeState | undefined>();
-  const [isChallengeSubmitting, setIsChallengeSubmitting] = React.useState(false);
-  const [challengeError, setChallengeError] = React.useState<string | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [successMessage, setSuccessMessage] = useState<string | undefined>();
+  const [challenge, setChallenge] = useState<ChallengeState | undefined>();
+  const [isChallengeSubmitting, setIsChallengeSubmitting] = useState(false);
+  const [challengeError, setChallengeError] = useState<string | undefined>();
 
-  React.useEffect(() => {
+  useEffect(() => {
     let canceled = false;
 
     getCurrentCognitoSession()
@@ -133,7 +143,7 @@ export default function LoginPage() {
     };
   }, [router]);
 
-  const handleSignIn = React.useCallback(
+  const handleSignIn = useCallback(
     async (values: { email: string; password: string; rememberMe: boolean }) => {
       setIsSubmitting(true);
       setErrorMessage(undefined);
@@ -165,7 +175,7 @@ export default function LoginPage() {
     [router]
   );
 
-  const handleChallengeSubmit = React.useCallback(
+  const handleChallengeSubmit = useCallback(
     async (newPassword: string) => {
       if (!challenge) return;
       setIsChallengeSubmitting(true);
@@ -198,7 +208,7 @@ export default function LoginPage() {
     [challenge, router]
   );
 
-  const handleChallengeCancel = React.useCallback(async () => {
+  const handleChallengeCancel = useCallback(async () => {
     await signOutFromCognito();
     setChallenge(undefined);
     setIsSubmitting(false);
@@ -208,9 +218,11 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className={styles.page}>
-      <span className={styles.pageLabel}>LoginPage</span>
-      <main className={styles.shell}>
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-surface-backdrop via-surface-muted to-surface-muted px-6 py-24">
+      <span className="absolute left-6 top-6 inline-flex rounded-[var(--radius-xl)] border border-border-subtle bg-surface-contrast px-3 py-1 text-sm font-medium text-brand-primary">
+        LoginPage
+      </span>
+      <main className="w-full max-w-lg rounded-[var(--radius-xl)] bg-surface-shell/60 p-10 backdrop-blur-sm">
         {challenge ? (
           <NewPasswordForm
             challenge={challenge}

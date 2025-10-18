@@ -1,13 +1,3 @@
-declare module "*.module.css" {
-  const classes: { readonly [key: string]: string };
-  export default classes;
-}
-
-declare module "*.module.scss" {
-  const classes: { readonly [key: string]: string };
-  export default classes;
-}
-
 declare namespace NodeJS {
   interface ProcessEnv {
     NEXT_PUBLIC_API_BASE_URL: string;

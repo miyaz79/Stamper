@@ -1,19 +1,24 @@
 "use client";
 
-import clsx from "clsx";
 import Link from "next/link";
-import React from "react";
-import styles from "./TextLink.module.css";
+import type { ComponentProps, ReactNode } from "react";
 
-type TextLinkProps = React.ComponentProps<typeof Link> & {
-  icon?: React.ReactNode;
+type TextLinkProps = ComponentProps<typeof Link> & {
+  icon?: ReactNode;
 };
 
 export function TextLink({ className, icon, children, ...props }: TextLinkProps) {
+  const classes = [
+    "inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary no-underline transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-primary/40 focus-visible:outline-offset-4 hover:text-brand-primary-dark",
+    className
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <Link className={clsx(styles.link, className)} {...props}>
+    <Link className={classes} {...props}>
       {children}
-      {icon ? icon : null}
+      {icon ?? null}
     </Link>
   );
 }

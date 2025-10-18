@@ -24,7 +24,7 @@ Next.js (App Router) を用いたフロントエンド実装のための開発�
 
 - **フレームワーク**: Next.js 14 App Router、React 18、TypeScript
 - **デザイン基盤**: `/app/globals.css` と `path_to_your_design_system` 配下のトークン／コンポーネント
-- **CSS 管理**: CSS Modules（`.module.css`）、カスタムプロパティ（Design Tokens）
+- **CSS 管理**: Tailwind CSS（Design Tokens を取り込んだテーマ拡張）
 - **ビルド管理**: Turborepo（ルートの `npm run dev/build/...` か、フィルター付きで部分実行）
 
 ## セットアップ
@@ -66,7 +66,7 @@ apps/frontend/
 │   │   └── TextLink/
 │   ├── styles/tokens.css    # CSS カスタムプロパティ（デザイントークン）
 │   └── tokens.ts            # TypeScript から利用するトークン
-├── types/global.d.ts        # CSS Modules 型定義
+├── types/global.d.ts        # 環境変数などの型定義
 ├── globals.css              # App Router 用グローバルスタイル
 ├── next.config.js
 └── package.json
@@ -74,7 +74,7 @@ apps/frontend/
 
 ## Design System の利用
 
-- **トークン参照**: `tokens.css` で定義したカスタムプロパティを CSS Modules から使用します。TypeScript でトークン値が必要な場合は `tokens.ts` をインポートしてください。
+- **トークン参照**: `tokens.css` で定義したカスタムプロパティを Tailwind (`tailwind.config.ts`) にマッピング済みです。TypeScript でトークン値が必要な場合は `tokens.ts` をインポートしてください。
 - **コンポーネント**: `path_to_your_design_system/components/index.ts` で主要コンポーネントをエクスポート。新規 UI は既存コンポーネントを組み合わせ、再利用が難しい場合のみ追加します。
 - **ドキュメント**: `LoginPanel/README.md` に代表的な使い方を記載。新しいコンポーネントを追加する際は README を同ディレクトリに作成してください。
 - 重要: `/path_to_your_design_system`のコンポーネントを可能な限り毎回使用してください。
@@ -86,16 +86,16 @@ apps/frontend/
 
 ### コンポーネント追加フロー
 
-1. `components/` 配下にディレクトリを作成し、`Component.tsx` と `Component.module.css` を用意
+1. `components/` 配下にディレクトリを作成し、`Component.tsx` を用意（スタイルは Tailwind ユーティリティで記述）
 2. 必要に応じて `README.md` を追加（API・アクセシビリティ・依存関係を明記）
 3. `components/index.ts` にエクスポートを追加
 4. lint (`npm run lint --workspace @stamper/frontend`) と build を実行
 
 ## スタイルガイド
 
-- **インラインスタイル禁止**: スタイルは CSS Modules 経由で指定します。
-- **トークン優先**: 色、余白、フォントサイズは `tokens.css` から取得し、生値のハードコーディングを避けます。
-- **レイアウト**: Grid / Flex の設定値にもトークンを活用し、一貫したリズムを維持します。
+- **Tailwind ベース**: スタイルは Tailwind ユーティリティで構築します。必要に応じて `clsx` などで条件分岐を行います。
+- **トークン優先**: `tailwind.config.ts` で `tokens.css` を参照するよう拡張済みです。色や余白は可能な限りトークンエイリアス (`text-text-primary` など) を利用してください。
+- **レイアウト**: Flex / Grid の設定値にもトークン化された値や Tailwind のスケールを活用し、一貫したリズムを維持します。
 
 ## アクセシビリティ
 

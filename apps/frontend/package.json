@@ -10,7 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-  "amazon-cognito-identity-js": "^6.3.15",
+    "amazon-cognito-identity-js": "^6.3.15",
     "clsx": "^2.1.1",
     "next": "14.2.5",
     "react": "18.3.1",
@@ -22,8 +22,11 @@
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@playwright/test": "^1.47.2",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.5",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
     "typescript": "^5.4.5"
   }
 }
