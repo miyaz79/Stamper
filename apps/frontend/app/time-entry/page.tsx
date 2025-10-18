@@ -26,7 +26,7 @@ type WorkItem = {
   hours: string;
 };
 
-type LeaveType = "full" | "hourly";
+type LeaveSelection = "none" | "full" | "hourly";
 
 type Summary = {
   workHours: number;
@@ -59,11 +59,6 @@ const taskOptions = [
   { value: "design", label: "設計" },
   { value: "coding", label: "実装" },
   { value: "testing", label: "テスト" }
-];
-
-const leaveTypeOptions = [
-  { value: "full", label: "全休 (7.5h)" },
-  { value: "hourly", label: "時間休" }
 ];
 
 const createWorkItem = (): WorkItem => ({
@@ -100,15 +95,20 @@ const clampNumber = (value: string) => {
 const computeSummary = (
   targetDate: string,
   workItems: WorkItem[],
-  isLeave: boolean,
-  leaveType: LeaveType,
+  leaveSelection: LeaveSelection,
   hourlyLeaveHours: string
 ): Summary => {
-  const isFullLeave = isLeave && leaveType === "full";
+  const isLeave = leaveSelection !== "none";
+  const isFullLeave = leaveSelection === "full";
   const workHours = isFullLeave
     ? 0
     : workItems.reduce((total, item) => total + clampNumber(item.hours), 0);
-  const leaveHours = isLeave ? (leaveType === "full" ? 7.5 : clampNumber(hourlyLeaveHours)) : 0;
+  const leaveHours =
+    leaveSelection === "full"
+      ? 7.5
+      : leaveSelection === "hourly"
+        ? clampNumber(hourlyLeaveHours)
+        : 0;
   const totalHours = workHours + leaveHours;
 
   if (isFullLeave) {
@@ -172,8 +172,7 @@ export default function TimeEntryPage() {
   const [activeNav, setActiveNav] = useState<MainNavItemId>("time-entry");
   const [workItems, setWorkItems] = useState<WorkItem[]>([createWorkItem(), createWorkItem(), createWorkItem()]);
   const [selectedDate, setSelectedDate] = useState<string>(() => formatDateForInput(new Date()));
-  const [isLeave, setIsLeave] = useState(false);
-  const [leaveType, setLeaveType] = useState<LeaveType>("full");
+  const [leaveSelection, setLeaveSelection] = useState<LeaveSelection>("none");
   const [hourlyLeaveHours, setHourlyLeaveHours] = useState("0.0");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -200,8 +199,8 @@ export default function TimeEntryPage() {
   }, [router]);
 
   const summary = useMemo(
-    () => computeSummary(selectedDate, workItems, isLeave, leaveType, hourlyLeaveHours),
-    [hourlyLeaveHours, isLeave, leaveType, selectedDate, workItems]
+    () => computeSummary(selectedDate, workItems, leaveSelection, hourlyLeaveHours),
+    [hourlyLeaveHours, leaveSelection, selectedDate, workItems]
   );
 
   const handleNavClick = useCallback(
@@ -229,13 +228,19 @@ export default function TimeEntryPage() {
     setWorkItems((prev) => (prev.length > 1 ? prev.filter((item) => item.id !== id) : prev));
   }, []);
 
-  const handleLeaveToggle = useCallback((checked: boolean) => {
-    setIsLeave(checked);
+  const handleFullLeaveChange = useCallback((checked: boolean) => {
+    setLeaveSelection((prev) => {
+      if (checked) return "full";
+      return prev === "full" ? "none" : prev;
+    });
     setMessage(null);
   }, []);
 
-  const handleLeaveTypeChange = useCallback((value: string) => {
-    setLeaveType(value as LeaveType);
+  const handleHourlyLeaveChange = useCallback((checked: boolean) => {
+    setLeaveSelection((prev) => {
+      if (checked) return "hourly";
+      return prev === "hourly" ? "none" : prev;
+    });
     setMessage(null);
   }, []);
 
@@ -311,7 +316,7 @@ export default function TimeEntryPage() {
                 </div>
               ) : null}
 
-              {!isLeave || leaveType !== "full" ? (
+              {leaveSelection !== "full" ? (
                 <div className="flex flex-col gap-6">
                   {workItems.map((item, index) => (
                     <div
@@ -381,7 +386,7 @@ export default function TimeEntryPage() {
                 </p>
               )}
 
-              {!isLeave || leaveType !== "full" ? (
+              {leaveSelection !== "full" ? (
                 <div className="flex justify-end">
                   <Button type="button" variant="secondary" onClick={addWorkItem}>
                     + 作業項目を追加
@@ -389,41 +394,39 @@ export default function TimeEntryPage() {
                 </div>
               ) : null}
 
-              <div className="flex flex-col gap-6 border-t border-border-subtle pt-6">
-                <CheckboxField
-                  id="is-leave"
-                  label="休暇にする"
-                  checked={isLeave}
-                  onChange={(event) => handleLeaveToggle(event.target.checked)}
-                />
-                {isLeave ? (
-                  <div className="flex flex-col gap-4 md:flex-row md:items-end">
-                    <SelectField
-                      id="leave-type"
-                      label="休暇タイプ"
-                      options={leaveTypeOptions}
-                      value={leaveType}
-                      onChange={(event) => handleLeaveTypeChange(event.target.value)}
-                      className="w-full md:w-56"
+              <div className="flex flex-col gap-4 border-t border-border-subtle pt-6">
+                <h3 className="text-lg font-semibold text-text-primary">休暇設定</h3>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
+                  <CheckboxField
+                    id="leave-full"
+                    label="全休 (7.5h)"
+                    checked={leaveSelection === "full"}
+                    onChange={(event) => handleFullLeaveChange(event.target.checked)}
+                  />
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <CheckboxField
+                      id="leave-hourly"
+                      label="時間休"
+                      checked={leaveSelection === "hourly"}
+                      onChange={(event) => handleHourlyLeaveChange(event.target.checked)}
                     />
-                    {leaveType === "hourly" ? (
-                      <TextField
-                        id="leave-hours"
-                        label="休暇時間"
-                        type="number"
-                        min="0"
-                        max="7.5"
-                        step="0.25"
-                        inputMode="decimal"
-                        value={hourlyLeaveHours}
-                        onChange={(event) => setHourlyLeaveHours(event.target.value)}
-                        onBlur={(event) => setHourlyLeaveHours(Number(event.target.value).toFixed(2))}
-                        supportingText="0.25時間刻みで入力"
-                        className="w-full md:w-56"
-                      />
-                    ) : null}
+                    <TextField
+                      id="leave-hours"
+                      label=""
+                      type="number"
+                      min="0"
+                      max="7.5"
+                      step="0.25"
+                      inputMode="decimal"
+                      value={hourlyLeaveHours}
+                      onChange={(event) => setHourlyLeaveHours(event.target.value)}
+                      onBlur={(event) => setHourlyLeaveHours(Number(event.target.value).toFixed(2))}
+                      className="w-32 [&>label]:hidden"
+                      disabled={leaveSelection !== "hourly"}
+                      aria-label="時間休の取得時間"
+                    />
                   </div>
-                ) : null}
+                </div>
               </div>
 
               <Card spacing="section" role="region" aria-labelledby="summary-heading">
