@@ -55,19 +55,34 @@ npm run dev
 ```plaintext
 apps/frontend/
 ├── app/
-│   ├── layout.tsx           # ルートレイアウト（フォント、グローバルCSS適用）
-│   └── page.tsx             # ログイン画面 (Client Component)
+│   ├── layout.tsx                 # ルートレイアウト（フォント、グローバルCSS適用）
+│   ├── globals.css                # Tailwind + デザイントークンのベーススタイル
+│   ├── navItems.ts                # メインナビゲーション定義
+│   ├── page.tsx                   # SCR-001: ログイン
+│   ├── dashboard/                 # SCR-002: ダッシュボード
+│   ├── time-entry/                # SCR-003: 日次勤怠記録
+│   ├── bulk-edit/                 # SCR-004: 月次一括編集
+│   ├── timesheet/                 # SCR-005: 勤務表表示
+│   ├── expenses/                  # SCR-006: 経費申請
+│   │   └── list/                  # SCR-007: 経費一覧・詳細
+│   └── admin/                     # 管理者向け画面群
+│       ├── work-summary/          # SCR-008: 作業時間集計
+│       ├── task-management/       # SCR-009: 作業項目管理
+│       └── attendance-approval/   # SCR-010: 勤怠承認
 ├── path_to_your_design_system/
 │   ├── components/
 │   │   ├── Button/
 │   │   ├── Card/
+│   │   ├── CheckboxField/
 │   │   ├── LoginPanel/
+│   │   ├── SelectField/
 │   │   ├── TextField/
 │   │   └── TextLink/
 │   ├── styles/tokens.css    # CSS カスタムプロパティ（デザイントークン）
 │   └── tokens.ts            # TypeScript から利用するトークン
+├── lib/                     # Cognito クライアントなどのユーティリティ
+├── tests/e2e/               # Playwright テスト
 ├── types/global.d.ts        # 環境変数などの型定義
-├── globals.css              # App Router 用グローバルスタイル
 ├── next.config.js
 └── package.json
 ```
@@ -76,7 +91,7 @@ apps/frontend/
 
 - **トークン参照**: `tokens.css` で定義したカスタムプロパティを Tailwind (`tailwind.config.ts`) にマッピング済みです。TypeScript でトークン値が必要な場合は `tokens.ts` をインポートしてください。
 - **コンポーネント**: `path_to_your_design_system/components/index.ts` で主要コンポーネントをエクスポート。新規 UI は既存コンポーネントを組み合わせ、再利用が難しい場合のみ追加します。
-- **ドキュメント**: `LoginPanel/README.md` に代表的な使い方を記載。新しいコンポーネントを追加する際は README を同ディレクトリに作成してください。
+- **ドキュメント**: 各コンポーネント ディレクトリに README を配置してください（例: `LoginPanel/README.md`）。API・アクセシビリティ・依存関係を明記します。
 - 重要: `/path_to_your_design_system`のコンポーネントを可能な限り毎回使用してください。
 - デザインを正確に一致させるために、Figmaの忠実度を優先してください。
 - ハードコードされた値を避け、Figmaのデザイントークンが利用可能な場合はそれを使用してください。
@@ -119,9 +134,11 @@ CI 前提で品質を担保するため、開発中もビルドを実行して�
 
 ### 新しいページを追加したい
 
-1. `app/` 配下にディレクトリを作成（例: `app/dashboard/page.tsx`）
+1. `app/` 配下にディレクトリを作成（例: `app/feature-name/page.tsx`）
 2. ページがインタラクティブな場合は先頭に `"use client"`
 3. Design System コンポーネントでレイアウトを構築し、必要なら Design Tokens を拡張
+
+> 既存の主要画面は SCR-002〜SCR-010 で実装済みです。新規画面を追加する場合は `navItems.ts` とダッシュボードのショートカットを必要に応じて更新してください。
 
 ### ログイン画面の文言/挙動を調整したい
 
