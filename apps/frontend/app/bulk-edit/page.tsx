@@ -469,7 +469,7 @@ export default function BulkEditPage() {
                         <td className="px-4 py-3 text-sm">
                           <ul className="space-y-1">
                             {record.isLeave ? (
-                              <li className="font-semibold text-brand-primary">
+                              <li className="font-semibold text-brand-accent">
                                 {record.leaveType === "full"
                                   ? "(全休)"
                                   : `(時間休: ${formatHoursValue(record.leaveHours)}h)`}
