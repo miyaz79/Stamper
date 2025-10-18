@@ -16,13 +16,17 @@ const adminDestinations = [
     id: "work-summary",
     title: "作業時間集計",
     description: "部門・メンバー別の勤怠状況を俯瞰できます。",
-    href: "/admin/work-summary"
+    href: "/admin/work-summary",
+    indicatorClass: "bg-gradient-to-tr from-brand-primary to-brand-primary-dark",
+    actionLabel: "作業時間集計へ"
   },
   {
     id: "task-management",
     title: "作業項目管理",
     description: "大・中・小分類の作業項目を最新の構成に保ちます。",
-    href: "/admin/task-management"
+    href: "/admin/task-management",
+    indicatorClass: "bg-gradient-to-tr from-brand-secondary to-brand-primary-dark",
+    actionLabel: "作業項目管理へ"
   }
 ];
 
@@ -209,10 +213,7 @@ export default function DashboardPage() {
               >
                 <div>
                   <div className="flex items-center gap-3">
-                    <span
-                      className="h-3 w-3 rounded-full bg-gradient-to-tr from-brand-primary to-brand-secondary"
-                      aria-hidden
-                    />
+                    <span className={`h-3 w-3 rounded-full ${destination.indicatorClass}`} aria-hidden />
                     <h3 id={`${destination.id}-title`} className="text-lg font-semibold text-text-primary">
                       {destination.title}
                     </h3>
@@ -220,8 +221,8 @@ export default function DashboardPage() {
                   <p className="mt-3 text-sm text-text-tertiary">{destination.description}</p>
                 </div>
                 <div className="mt-6">
-                  <Button type="button" variant="secondary" onClick={() => router.push(destination.href)}>
-                    管理画面を開く
+                  <Button type="button" variant="primary" onClick={() => router.push(destination.href)}>
+                    {destination.actionLabel}
                   </Button>
                 </div>
               </Card>
