@@ -65,8 +65,8 @@ export default function DashboardPage() {
     [router]
   );
 
-  const handleAutoExpense = useCallback(() => {
-    router.push("/expenses/auto");
+  const handleExpenseRequest = useCallback(() => {
+    router.push("/expenses");
   }, [router]);
 
   const handleAttendanceApproval = useCallback(() => {
@@ -75,12 +75,12 @@ export default function DashboardPage() {
 
   const requestShortcuts = [
     {
-      id: "auto-expense",
+      id: "expense-application",
       indicatorClass: "bg-gradient-to-tr from-brand-secondary to-brand-primary",
-      title: "自動経費申請",
-      description: "アップロードした領収書をOCR解析して申請を作成します。",
-      actionLabel: "申請ページを開く",
-      onClick: handleAutoExpense
+      title: "経費申請",
+      description: "領収書の登録から申請送信まで一括で完了できます。",
+      actionLabel: "経費申請へ",
+      onClick: handleExpenseRequest
     },
     {
       id: "attendance-approval",
@@ -107,7 +107,9 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-text-primary">勤怠管理</h1>
           </div>
           <nav className="flex flex-wrap gap-2" aria-label="メインメニュー">
-            {mainNavItems.map((item) => {
+            {mainNavItems
+              .filter((item) => item.id !== "expenses")
+              .map((item) => {
               const isActive = item.id === activeNav;
               return (
                 <Button
@@ -126,8 +128,8 @@ export default function DashboardPage() {
                   />
                   {item.label}
                 </Button>
-              );
-            })}
+                );
+              })}
           </nav>
         </header>
 
