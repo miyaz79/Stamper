@@ -8,3 +8,4 @@ The system SHALL provide an endpoint that returns a list of categories as an arr
 - **WHEN** クライアントがカテゴリ一覧エンドポイントに GET リクエストする
 - **THEN** ステータス 200 を返し、配列としてカテゴリのリストを返す（各カテゴリは id と name を持つ）
 
+

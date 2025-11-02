@@ -12,3 +12,4 @@ The system SHALL provide an endpoint that accepts email and password and returns
 - **WHEN** 誤った資格情報が送信される
 - **THEN** ステータス 401 を返す
 
+
