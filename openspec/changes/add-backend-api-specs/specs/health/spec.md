@@ -8,3 +8,4 @@ The system SHALL provide a health check endpoint that returns HTTP 200 when the 
 - **WHEN** クライアントがヘルスチェックエンドポイントに GET リクエストする
 - **THEN** ステータス 200 を返す（レスポンスボディは空でも可）
 
+
